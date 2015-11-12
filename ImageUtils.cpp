@@ -57,7 +57,16 @@ Mat* getPages() {
     /*********** load images ***********/
     Mat* myImages = loadImages(numberOfImages, image_files, file_location);
 
-    return myImages;
+
+    //CROPP EXPERIMENTAL
+    Mat* croppedImgs = new Mat[numberOfImages];
+    
+    for(int i = 0; i < numberOfImages; i++) {
+        Rect myROI(10, 10, myImages[i].cols - 20, myImages[i].rows - 20);
+        croppedImgs[i] = myImages[i](myROI);
+    }
+
+    return croppedImgs;
 }
 
 Mat* getPhotos() {

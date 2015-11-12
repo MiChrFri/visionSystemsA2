@@ -12,7 +12,8 @@
 //#include <iostream>
 #include <opencv2/opencv.hpp>
 
-//using namespace std;
+
+using namespace std;
 using namespace cv;
 
 // function declarations
@@ -74,4 +75,31 @@ double randInDegree(double rand) {
     double degree =  rand * 180.0/M_PI;
     
     return degree;
+}
+
+Mat* mapInRect(Mat srcImage, Point2f *sourcePoints ) {
+    Point2f dstQua[4];
+
+    Mat warp_mat( 2, 3, CV_32FC1 );
+    Mat warp_dst;
+    
+    /// Set the dst image the same type and size as src
+    int newImgW = 408;
+    int newImgH = 598;
+    
+    warp_dst = Mat::zeros( newImgH, newImgW, srcImage.type() );
+    
+    dstQua[0] = Point2f( newImgW, newImgH);
+    dstQua[1] = Point2f( 0, newImgH);
+    dstQua[2] = Point2f( newImgW, 0);
+    dstQua[3] = Point2f( 0, 0 );
+    
+    // Get the Perspective Transform
+    warp_mat = getPerspectiveTransform( sourcePoints, dstQua );
+    warpPerspective(srcImage, warp_dst, warp_mat, warp_dst.size());
+    
+    Mat* rtrnImg = new Mat;
+    rtrnImg[0] = warp_dst;
+    
+    return rtrnImg;
 }

@@ -15,6 +15,7 @@
 double getDistance(cv::Point pA, cv::Point pB);
 double getAngle(cv::Point base, cv::Point neighbour);
 double* getAngles(cv::Point pA, cv::Point pB, cv::Point pC);
+cv::Mat* mapInRect(cv::Mat srcImage, cv::Point2f* sourcePoints);
 
 #endif /* GeometricUtils_hpp */
 

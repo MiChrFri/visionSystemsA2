@@ -44,13 +44,23 @@ int main(int argc, const char * argv[]) {
     
     Mat* pages  = getPages();
     Mat* photos = getPhotos();
-        
-
-    if(pages->empty() || photos->empty()) {
+    
+    if(pages->empty()) {
         cout << "loading images failed!" << endl;
     }
     else {
-        for(int i = 0; i < 10; i++) {
+        for(int i = 0; i < 13; i++) {
+            string wi = "page_" + to_string(i);
+            imshow(wi, pages[i]);
+        }
+    }
+    
+
+    if(photos->empty()) {
+        cout << "loading images failed!" << endl;
+    }
+    else {
+        for(int i = 2; i < 3; i++) {
             // convert image to HSL
             Mat hlsImg;
             //cvtColor(photos[i], hlsImg, CV_BGR2HLS);
@@ -94,6 +104,8 @@ int main(int argc, const char * argv[]) {
             
             
             vector<vector<int>> lines;
+            
+            vector<int> corners;
         
             /// Draw polygonal contour + bonding rects + circles
             for( int i = 0; i < contours.size(); i++ ) {
@@ -115,11 +127,12 @@ int main(int argc, const char * argv[]) {
                 switch(pointProp){
                     case CORNER:
                         cout << "CORNER" << endl;
+                        corners.push_back(startPoint);
                         color = Scalar( 0, 0, 0);
                         break;
                     case SIDE:
                         cout << "SIDE" << endl;
-                        lines.push_back({startPoint, nbees[0], nbees[1]});
+                        //lines.push_back({startPoint, nbees[0], nbees[1]});
                         break;
                     case UNKNOWN:
                         cout << "UNKNOWN" << endl;
@@ -127,16 +140,27 @@ int main(int argc, const char * argv[]) {
                         break;
                 }
                 
-                circle( origImage, center[i], 5, color, 1, 20, 0 );
-                
+                //circle( origImage, center[i], 5, color, 1, 20, 0 );
             }
             
-            cout << lines.size() << " lines: ";
+            cout << lines.size() << " lines: " << endl;
+            cout << corners.size() << " corners: " << endl;
             
-           
-            string win = "win_no_" + to_string(i);
-            namedWindow( win, CV_WINDOW_AUTOSIZE );
-            imshow( win, origImage );
+            ////// transfortation experimental
+            
+            // write corner points to array
+            Point2f srcQua[4];
+            srcQua[0] = center[corners[0]];
+            srcQua[1] = center[corners[1]];
+            srcQua[2] = center[corners[2]];
+            srcQua[3] = center[corners[3]];
+            
+            Mat* imaag = new Mat[1];
+            imaag = mapInRect(origImage, srcQua);
+
+            string win2 = "transfo_no_" + to_string(i);
+            namedWindow( win2, CV_WINDOW_AUTOSIZE );
+            imshow(win2, imaag[0]);
         }
     }
 
