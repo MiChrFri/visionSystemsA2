@@ -63,7 +63,10 @@ Mat* getPages() {
     
     for(int i = 0; i < numberOfImages; i++) {
         Rect myROI(10, 10, myImages[i].cols - 20, myImages[i].rows - 20);
-        croppedImgs[i] = myImages[i](myROI);
+        
+        Size size(300,448);
+        Mat resizedImage;
+        resize(myImages[i](myROI),croppedImgs[i],size);
     }
 
     return croppedImgs;
@@ -103,4 +106,29 @@ Mat* getPhotos() {
     }
     
     return resizedImage;
+}
+
+Mat* getChamferImg(Mat img) {
+    
+    // convert to grayscale
+    Mat grayImg;
+    cvtColor(img,grayImg,CV_RGB2GRAY);
+    
+    // canny
+    Mat edgeImg;
+    Canny(grayImg, edgeImg, 100, 200, 5);
+    
+    // threshold img
+    Mat threshImage;
+    adaptiveThreshold(edgeImg, threshImage, 255, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY_INV, 3, 2);
+
+    // chamfer img
+    Mat chamfImg;
+    distanceTransform(threshImage, chamfImg, CV_DIST_L2, 3);
+    
+
+    Mat* chmfrImg = new Mat;
+    chmfrImg[0] = chamfImg;
+    
+    return chmfrImg;
 }

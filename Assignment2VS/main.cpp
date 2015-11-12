@@ -20,13 +20,17 @@
 void displayImage(Mat image);
 int* getNeighbours(int baseIndex, vector<Point2f> points);
 bool inVector(int val, vector<int>vec);
+vector<vector<int>> getSides(vector<vector<int>> lines);
 
 // ALGOS
 Mat thresholdIMG(Mat image);
+Mat adaptiveThresholdImg(Mat image);
+
 Mat kMeansImg(Mat image);
 Mat backProjection(Mat sampleHist, Mat inputImg);
 MatND getSampleHist();
 MatND getHistogram(Mat image);
+int matchPossibility(Mat pageImg, Mat matchImg);
 
 int identifyPoint(double* angles);
 double getAngle(Point base, Point neighbour);
@@ -50,12 +54,11 @@ int main(int argc, const char * argv[]) {
     }
     else {
         for(int i = 0; i < 13; i++) {
-            string wi = "page_" + to_string(i);
-            imshow(wi, pages[i]);
+            //string wi = "page_" + to_string(i);
+            //imshow(wi, pages[i]);
         }
     }
     
-
     if(photos->empty()) {
         cout << "loading images failed!" << endl;
     }
@@ -98,13 +101,9 @@ int main(int argc, const char * argv[]) {
             for( int i = 0; i < contours.size(); i++ ){
                 approxPolyDP( Mat(contours[i]), contours_poly[i], 3, true );
                 minEnclosingCircle( (Mat)contours_poly[i], center[i], radius[i] );
-                
-                //center[1] = Point2f(100, 100);
             }
             
-            
             vector<vector<int>> lines;
-            
             vector<int> corners;
         
             /// Draw polygonal contour + bonding rects + circles
@@ -116,38 +115,59 @@ int main(int argc, const char * argv[]) {
                 
                 double *angles = getAngles(center[startPoint], center[nbees[0]], center[nbees[1]]);
                 
-                /* Debug output
-                cout << "POINTS: " << startPoint << "|" << nbees[0] << "|" << nbees[1] << endl;
-                cout << "ANGLEEEEs: " << angles[0] << " | " << angles[1] << " | " << angles[2] << " | " << endl;
-                */
-                 
-                int pointProp = identifyPoint(angles);
+                //Debug output
+                //cout << "POINTS: " << startPoint << "|" << nbees[0] << "|" << nbees[1] << endl;
+                //cout << "ANGLEEEEs: " << angles[0] << " | " << angles[1] << " | " << angles[2] << " | " << endl;
+                putText(photos[2], to_string(i), cvPoint(center[i].x, center[i].y+13),
+                        FONT_HERSHEY_DUPLEX, 0.3, Scalar(0,0,255), 1, CV_AA);
                 
+            
+                int pointProp = identifyPoint(angles);
                 
                 switch(pointProp){
                     case CORNER:
-                        cout << "CORNER" << endl;
                         corners.push_back(startPoint);
                         color = Scalar( 0, 0, 0);
                         break;
                     case SIDE:
-                        cout << "SIDE" << endl;
-                        //lines.push_back({startPoint, nbees[0], nbees[1]});
+                        lines.push_back({startPoint, nbees[0], nbees[1]});
                         break;
                     case UNKNOWN:
-                        cout << "UNKNOWN" << endl;
                         color = Scalar( 0, 0, 255);
                         break;
                 }
                 
-                //circle( origImage, center[i], 5, color, 1, 20, 0 );
+                circle( origImage, center[i], 5, color, 1, 20, 0 );
             }
             
             cout << lines.size() << " lines: " << endl;
             cout << corners.size() << " corners: " << endl;
             
-            ////// transfortation experimental
+            // GET THE POINTS OF THE 4 SIDES
+            vector<vector<int>> sides = getSides(lines);
             
+            // print out sides
+            cout << "side1: ";
+            for(int i = 0; i < sides[0].size(); i++) {
+                cout << sides[0][i] << ", ";
+            }
+            cout << endl << "side2: ";
+            for(int i = 0; i < sides[1].size(); i++) {
+                cout << sides[1][i] << ", ";
+            }
+            cout << endl << "side3: ";
+            for(int i = 0; i < sides[2].size(); i++) {
+                cout << sides[2][i] << ", ";
+            }
+            cout << endl << "side4: ";
+            for(int i = 0; i < sides[3].size(); i++) {
+                cout << sides[3][i] << ", ";
+            }
+            cout << endl;
+            
+            
+            
+            ////// TRANSFORMATION
             // write corner points to array
             Point2f srcQua[4];
             srcQua[0] = center[corners[0]];
@@ -155,12 +175,26 @@ int main(int argc, const char * argv[]) {
             srcQua[2] = center[corners[2]];
             srcQua[3] = center[corners[3]];
             
-            Mat* imaag = new Mat[1];
-            imaag = mapInRect(origImage, srcQua);
-
-            string win2 = "transfo_no_" + to_string(i);
-            namedWindow( win2, CV_WINDOW_AUTOSIZE );
-            imshow(win2, imaag[0]);
+            Mat* transformedImg = new Mat[1];
+            transformedImg = mapInRect(origImage, srcQua);
+            
+            ////// EXPERIMENTAL TEMPLATE MATCHING
+            int highestMatch[2] = {0, 0};
+            
+            for(int i = 0; i < 13; i++) {
+                int r = matchPossibility(pages[i], transformedImg[0]);
+                
+                if(r > highestMatch[1]) {
+                    highestMatch[0] = i;
+                    highestMatch[1] = r;
+                }
+            }
+            
+            cout << "highest match = " << highestMatch[1] << " has index: " << highestMatch[0] << endl;
+            imshow("pagePhoto", photos[i]);
+            moveWindow("pagePhoto", 300, 0);
+            imshow("match", pages[highestMatch[0]]);
+            moveWindow("match", 0, 0);
         }
     }
 
@@ -168,6 +202,70 @@ int main(int argc, const char * argv[]) {
     waitKey(0);
 
     return 0;
+}
+
+/////
+
+vector<vector<int>> getSides(vector<vector<int>> lines) {
+    vector<int> side1, side2, side3, side4;
+    
+    for(int i = 1; i < lines.size(); i++) {
+        if(inVector(lines[i][0], side1) || side1.empty()) {
+            if(!inVector(lines[i][1], side1)) {
+                side1.push_back(lines[i][1]);
+            }
+            if(!inVector(lines[i][2], side1)) {
+                side1.push_back(lines[i][2]);
+            }
+        }
+        else if(inVector(lines[i][0], side2) || side2.empty()) {
+            if(!inVector(lines[i][1], side2)) {
+                side2.push_back(lines[i][1]);
+            }
+            if(!inVector(lines[i][2], side2)) {
+                side2.push_back(lines[i][2]);
+            }
+        }
+        else if(inVector(lines[i][0], side3) || side3.empty()) {
+            if(!inVector(lines[i][1], side3)) {
+                side3.push_back(lines[i][1]);
+            }
+            if(!inVector(lines[i][2], side3)) {
+                side3.push_back(lines[i][2]);
+            }
+        }
+        else if(inVector(lines[i][0], side4) || side4.empty()) {
+            if(!inVector(lines[i][1], side4)) {
+                side4.push_back(lines[i][1]);
+            }
+            if(!inVector(lines[i][2], side4)) {
+                side4.push_back(lines[i][2]);
+            }
+        }
+    }
+    
+    vector<vector<int>> sides = {side1, side2, side3, side4};
+    return sides;
+}
+
+int matchPossibility(Mat pageImg, Mat matchImg) {
+    Mat uno = getChamferImg(pageImg)[0];
+    Mat dos = getChamferImg(matchImg)[0];
+    
+    
+    Mat unoR;
+    Size size(uno.cols/5, uno.rows/5);
+    resize(uno, unoR, size);
+    
+    Mat dosR;
+    resize(dos, dosR, size);
+    
+    Mat result;
+    compare(unoR , dosR, result , CMP_EQ );
+    int similarPixels  = countNonZero(result);
+
+    double dist = norm(unoR,dosR,NORM_L2);
+    return abs(similarPixels/dist);
 }
 
 bool inVector(int val, vector<int>vec) {

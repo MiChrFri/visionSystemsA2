@@ -84,8 +84,8 @@ Mat* mapInRect(Mat srcImage, Point2f *sourcePoints ) {
     Mat warp_dst;
     
     /// Set the dst image the same type and size as src
-    int newImgW = 408;
-    int newImgH = 598;
+    int newImgW = 300;
+    int newImgH = 448;
     
     warp_dst = Mat::zeros( newImgH, newImgW, srcImage.type() );
     
