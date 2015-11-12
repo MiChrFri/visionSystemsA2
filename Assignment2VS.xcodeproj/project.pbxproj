@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		4C45702E1BF3ABF0004ABB66 /* GeometricUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4C45702C1BF3ABF0004ABB66 /* GeometricUtils.cpp */; };
+		4C4570311BF54014004ABB66 /* Debug.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4C45702F1BF54014004ABB66 /* Debug.cpp */; };
 		4C4DBE761BEF7A5D0058C5DF /* HistogramUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4C4DBE741BEF7A5D0058C5DF /* HistogramUtils.cpp */; };
 		4C911F461BED09E2004044DC /* ImageUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4C911F441BED09E2004044DC /* ImageUtils.cpp */; };
 		4C911F491BED09EF004044DC /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4C911F471BED09EF004044DC /* main.cpp */; };
@@ -28,6 +29,8 @@
 /* Begin PBXFileReference section */
 		4C45702C1BF3ABF0004ABB66 /* GeometricUtils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GeometricUtils.cpp; sourceTree = SOURCE_ROOT; };
 		4C45702D1BF3ABF0004ABB66 /* GeometricUtils.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = GeometricUtils.hpp; sourceTree = SOURCE_ROOT; };
+		4C45702F1BF54014004ABB66 /* Debug.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Debug.cpp; sourceTree = SOURCE_ROOT; };
+		4C4570301BF54014004ABB66 /* Debug.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Debug.hpp; sourceTree = SOURCE_ROOT; };
 		4C4DBE741BEF7A5D0058C5DF /* HistogramUtils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = HistogramUtils.cpp; sourceTree = SOURCE_ROOT; };
 		4C4DBE751BEF7A5D0058C5DF /* HistogramUtils.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = HistogramUtils.hpp; sourceTree = SOURCE_ROOT; };
 		4C5144FB1BC5878A000EB0AA /* Assignment2VS */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Assignment2VS; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -57,6 +60,8 @@
 				4C911F451BED09E2004044DC /* ImageUtils.hpp */,
 				4C45702C1BF3ABF0004ABB66 /* GeometricUtils.cpp */,
 				4C45702D1BF3ABF0004ABB66 /* GeometricUtils.hpp */,
+				4C45702F1BF54014004ABB66 /* Debug.cpp */,
+				4C4570301BF54014004ABB66 /* Debug.hpp */,
 			);
 			name = utils;
 			sourceTree = "<group>";
@@ -145,6 +150,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4C4DBE761BEF7A5D0058C5DF /* HistogramUtils.cpp in Sources */,
+				4C4570311BF54014004ABB66 /* Debug.cpp in Sources */,
 				4C911F461BED09E2004044DC /* ImageUtils.cpp in Sources */,
 				4C911F491BED09EF004044DC /* main.cpp in Sources */,
 				4C45702E1BF3ABF0004ABB66 /* GeometricUtils.cpp in Sources */,

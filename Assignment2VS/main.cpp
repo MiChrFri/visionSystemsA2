@@ -12,9 +12,11 @@
 
 #include <cmath>
 
+// custom includes
 #include "ImageUtils.hpp"
 #include "HistogramUtils.hpp"
 #include "GeometricUtils.hpp"
+#include "Debug.hpp"
 
 // function declarations
 void displayImage(Mat image);
@@ -63,7 +65,7 @@ int main(int argc, const char * argv[]) {
         cout << "loading images failed!" << endl;
     }
     else {
-        for(int i = 2; i < 3; i++) {
+        for(int i = 0; i < 3; i++) {
             // convert image to HSL
             Mat hlsImg;
             //cvtColor(photos[i], hlsImg, CV_BGR2HLS);
@@ -97,20 +99,20 @@ int main(int argc, const char * argv[]) {
             vector<Point2f>center( contours.size() );
             vector<float>radius( contours.size() );
         
-            //for( int i = 0; i < contours.size(); i++ ){
-            for( int i = 0; i < contours.size(); i++ ){
-                approxPolyDP( Mat(contours[i]), contours_poly[i], 3, true );
-                minEnclosingCircle( (Mat)contours_poly[i], center[i], radius[i] );
+            //for( int ii = 0; ii < contours.size(); ii++ ){
+            for( int ii = 0; ii < contours.size(); ii++ ){
+                approxPolyDP( Mat(contours[ii]), contours_poly[ii], 3, true );
+                minEnclosingCircle( (Mat)contours_poly[ii], center[ii], radius[ii] );
             }
             
             vector<vector<int>> lines;
             vector<int> corners;
         
             /// Draw polygonal contour + bonding rects + circles
-            for( int i = 0; i < contours.size(); i++ ) {
+            for( int ii = 0; ii < contours.size(); ii++ ) {
                 Scalar color = Scalar( 0, 255, 0);
                 
-                int startPoint = i;
+                int startPoint = ii;
                 int *nbees = getNeighbours(startPoint, center);
                 
                 double *angles = getAngles(center[startPoint], center[nbees[0]], center[nbees[1]]);
@@ -118,9 +120,7 @@ int main(int argc, const char * argv[]) {
                 //Debug output
                 //cout << "POINTS: " << startPoint << "|" << nbees[0] << "|" << nbees[1] << endl;
                 //cout << "ANGLEEEEs: " << angles[0] << " | " << angles[1] << " | " << angles[2] << " | " << endl;
-                putText(photos[2], to_string(i), cvPoint(center[i].x, center[i].y+13),
-                        FONT_HERSHEY_DUPLEX, 0.3, Scalar(0,0,255), 1, CV_AA);
-                
+                putText(photos[i], to_string(ii), cvPoint(center[ii].x, center[ii].y+13), FONT_HERSHEY_DUPLEX, 0.3, Scalar(0,0,255), 1, CV_AA);
             
                 int pointProp = identifyPoint(angles);
                 
@@ -137,64 +137,60 @@ int main(int argc, const char * argv[]) {
                         break;
                 }
                 
-                circle( origImage, center[i], 5, color, 1, 20, 0 );
+                circle( origImage, center[ii], 5, color, 1, 20, 0 );
             }
             
-            cout << lines.size() << " lines: " << endl;
-            cout << corners.size() << " corners: " << endl;
+            imshow("pagePhoto" + to_string(i), photos[i]);
+            moveWindow("pagePhoto" + to_string(i), 300, 0);
             
             // GET THE POINTS OF THE 4 SIDES
             vector<vector<int>> sides = getSides(lines);
             
-            // print out sides
-            cout << "side1: ";
-            for(int i = 0; i < sides[0].size(); i++) {
-                cout << sides[0][i] << ", ";
-            }
-            cout << endl << "side2: ";
-            for(int i = 0; i < sides[1].size(); i++) {
-                cout << sides[1][i] << ", ";
-            }
-            cout << endl << "side3: ";
-            for(int i = 0; i < sides[2].size(); i++) {
-                cout << sides[2][i] << ", ";
-            }
-            cout << endl << "side4: ";
-            for(int i = 0; i < sides[3].size(); i++) {
-                cout << sides[3][i] << ", ";
-            }
-            cout << endl;
             
-            
-            
-            ////// TRANSFORMATION
-            // write corner points to array
-            Point2f srcQua[4];
-            srcQua[0] = center[corners[0]];
-            srcQua[1] = center[corners[1]];
-            srcQua[2] = center[corners[2]];
-            srcQua[3] = center[corners[3]];
-            
-            Mat* transformedImg = new Mat[1];
-            transformedImg = mapInRect(origImage, srcQua);
-            
-            ////// EXPERIMENTAL TEMPLATE MATCHING
-            int highestMatch[2] = {0, 0};
-            
-            for(int i = 0; i < 13; i++) {
-                int r = matchPossibility(pages[i], transformedImg[0]);
-                
-                if(r > highestMatch[1]) {
-                    highestMatch[0] = i;
-                    highestMatch[1] = r;
+            if(corners.size() != 4 || lines.size() != 16) {
+                if(lines.size() != 16) {
+                    for(int ii = 0; ii < 4; ii++) {
+                        if(sides[ii].size() != 5 && sides[ii].size() != 7){
+                            cout << sides[ii].size() << " ⛔️ " << endl;
+                        }
+                    }
                 }
+                cout << "---" << endl;
             }
             
-            cout << "highest match = " << highestMatch[1] << " has index: " << highestMatch[0] << endl;
-            imshow("pagePhoto", photos[i]);
-            moveWindow("pagePhoto", 300, 0);
-            imshow("match", pages[highestMatch[0]]);
-            moveWindow("match", 0, 0);
+            
+            if(corners.size() == 4 && lines.size() == 16) {
+                cout << "point: " << i << " has " << lines.size() << " lines & " << corners.size() << " corners -> ✅" << endl;
+                
+                // log out sides
+                logSides(sides);
+                
+                ////// TRANSFORMATION
+                // write corner points to array
+                Point2f srcQua[4];
+                srcQua[0] = center[corners[0]];
+                srcQua[1] = center[corners[1]];
+                srcQua[2] = center[corners[2]];
+                srcQua[3] = center[corners[3]];
+                
+                Mat* transformedImg = new Mat[1];
+                transformedImg = mapInRect(origImage, srcQua);
+                
+                //// EXPERIMENTAL TEMPLATE MATCHING
+                int highestMatch[2] = {0, 0};
+                
+                for(int i = 0; i < 13; i++) {
+                    int r = matchPossibility(pages[i], transformedImg[0]);
+                    if(r > highestMatch[1]) {
+                        highestMatch[0] = i;
+                        highestMatch[1] = r;
+                    }
+                }
+                
+                cout << "highest match = " << highestMatch[1] << " has index: " << highestMatch[0] << endl;
+                imshow("match" + to_string(i), pages[highestMatch[0]]);
+                moveWindow("match" + to_string(i), 0, 0);
+            }
         }
     }
 
@@ -204,12 +200,12 @@ int main(int argc, const char * argv[]) {
     return 0;
 }
 
-/////
-
+/***** GET THE FOUR SIDES OF THE DOCUMENT *****/
+/**********************************************/
 vector<vector<int>> getSides(vector<vector<int>> lines) {
     vector<int> side1, side2, side3, side4;
     
-    for(int i = 1; i < lines.size(); i++) {
+    for(int i = 0; i < lines.size(); i++) {
         if(inVector(lines[i][0], side1) || side1.empty()) {
             if(!inVector(lines[i][1], side1)) {
                 side1.push_back(lines[i][1]);
@@ -248,10 +244,11 @@ vector<vector<int>> getSides(vector<vector<int>> lines) {
     return sides;
 }
 
+/************ GET A MATCHING VALUE ************/
+/**********************************************/
 int matchPossibility(Mat pageImg, Mat matchImg) {
     Mat uno = getChamferImg(pageImg)[0];
     Mat dos = getChamferImg(matchImg)[0];
-    
     
     Mat unoR;
     Size size(uno.cols/5, uno.rows/5);
@@ -277,9 +274,8 @@ bool inVector(int val, vector<int>vec) {
     }
 }
 
-/*************** GET NEIGHBOURS ***************/
+/************ GET NEIGHBOUR POINTS ************/
 /**********************************************/
-
 int* getNeighbours(int baseIndex, vector<Point2f> points) {
 
     int neighbours[2][2] = {
@@ -316,8 +312,10 @@ int* getNeighbours(int baseIndex, vector<Point2f> points) {
     return result;
 }
 
-int identifyPoint(double* angles) {
 
+/******* FIND OUT IF A POINT IS AT THE CRONER OR IN A LINE *******/
+/*****************************************************************/
+int identifyPoint(double* angles) {
     // set the tolerance angle to detect as straight line angle+-
     int cornerTolerance = 20;
     int sideToleranceS = 10;
