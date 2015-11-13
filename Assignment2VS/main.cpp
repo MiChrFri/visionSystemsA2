@@ -23,15 +23,13 @@ void displayImage(Mat image);
 int* getNeighbours(int baseIndex, vector<Point2f> points);
 bool inVector(int val, vector<int>vec);
 vector<vector<int>> getSides(vector<vector<int>> lines);
+vector<int> getEdges(int corner, vector<vector<int>> sides);
 
 // ALGOS
 Mat thresholdIMG(Mat image);
 Mat adaptiveThresholdImg(Mat image);
-
-Mat kMeansImg(Mat image);
 Mat backProjection(Mat sampleHist, Mat inputImg);
-MatND getSampleHist();
-MatND getHistogram(Mat image);
+
 int matchPossibility(Mat pageImg, Mat matchImg);
 
 int identifyPoint(double* angles);
@@ -65,18 +63,18 @@ int main(int argc, const char * argv[]) {
         cout << "loading images failed!" << endl;
     }
     else {
-        for(int i = 0; i < 3; i++) {
+        for(int i = 0; i < 1; i++) {
             // convert image to HSL
-            Mat hlsImg;
-            //cvtColor(photos[i], hlsImg, CV_BGR2HLS);
-            cvtColor(photos[i], hlsImg, CV_BGR2RGB);
+            Mat origImage;
+            origImage = photos[i];
             
-            Mat origImage = photos[i];
+            Mat rgbImg;
+            cvtColor(origImage, rgbImg, CV_BGR2RGB);
             
             Mat sampleHist = getSampleHist();
             
             // back projection
-            Mat BP = backProjection(sampleHist, hlsImg);
+            Mat BP = backProjection(sampleHist, rgbImg);
             
             // back threshold
             Mat img = thresholdIMG(BP);
@@ -98,7 +96,7 @@ int main(int argc, const char * argv[]) {
             vector<Rect> boundRect( contours.size() );
             vector<Point2f>center( contours.size() );
             vector<float>radius( contours.size() );
-        
+            
             //for( int ii = 0; ii < contours.size(); ii++ ){
             for( int ii = 0; ii < contours.size(); ii++ ){
                 approxPolyDP( Mat(contours[ii]), contours_poly[ii], 3, true );
@@ -107,7 +105,7 @@ int main(int argc, const char * argv[]) {
             
             vector<vector<int>> lines;
             vector<int> corners;
-        
+            
             /// Draw polygonal contour + bonding rects + circles
             for( int ii = 0; ii < contours.size(); ii++ ) {
                 Scalar color = Scalar( 0, 255, 0);
@@ -121,7 +119,7 @@ int main(int argc, const char * argv[]) {
                 //cout << "POINTS: " << startPoint << "|" << nbees[0] << "|" << nbees[1] << endl;
                 //cout << "ANGLEEEEs: " << angles[0] << " | " << angles[1] << " | " << angles[2] << " | " << endl;
                 putText(photos[i], to_string(ii), cvPoint(center[ii].x, center[ii].y+13), FONT_HERSHEY_DUPLEX, 0.3, Scalar(0,0,255), 1, CV_AA);
-            
+                
                 int pointProp = identifyPoint(angles);
                 
                 switch(pointProp){
@@ -139,7 +137,6 @@ int main(int argc, const char * argv[]) {
                 
                 circle( origImage, center[ii], 5, color, 1, 20, 0 );
             }
-            
             imshow("pagePhoto" + to_string(i), photos[i]);
             moveWindow("pagePhoto" + to_string(i), 300, 0);
             
@@ -193,11 +190,24 @@ int main(int argc, const char * argv[]) {
             }
         }
     }
+    
+    
+cout << "press any key to end the programm" << endl;
+waitKey(0);
 
-    cout << "press any key to end the programm" << endl;
-    waitKey(0);
+return 0;
+}
 
-    return 0;
+vector<int> getEdges(int corner, vector<vector<int>> sides) {
+    
+    vector<int> edges;
+    
+    for(int i = 0; i < sides.size(); i++) {
+        if(inVector(corner, sides[i])) {
+            edges.push_back(i);
+        }
+    }
+    return edges;
 }
 
 /***** GET THE FOUR SIDES OF THE DOCUMENT *****/
@@ -260,7 +270,7 @@ int matchPossibility(Mat pageImg, Mat matchImg) {
     Mat result;
     compare(unoR , dosR, result , CMP_EQ );
     int similarPixels  = countNonZero(result);
-
+    
     double dist = norm(unoR,dosR,NORM_L2);
     return abs(similarPixels/dist);
 }
@@ -277,7 +287,7 @@ bool inVector(int val, vector<int>vec) {
 /************ GET NEIGHBOUR POINTS ************/
 /**********************************************/
 int* getNeighbours(int baseIndex, vector<Point2f> points) {
-
+    
     int neighbours[2][2] = {
         {INT_MAX, INT_MAX},
         {INT_MAX, INT_MAX}
@@ -285,7 +295,7 @@ int* getNeighbours(int baseIndex, vector<Point2f> points) {
     
     int baseX = points[baseIndex].x;
     int baseY =points[baseIndex].y;
-
+    
     for(int i = 0; i < points.size(); i ++) {
         if(i != baseIndex) {
             int xDist = abs(baseX - points[i].x);
@@ -313,7 +323,7 @@ int* getNeighbours(int baseIndex, vector<Point2f> points) {
 }
 
 
-/******* FIND OUT IF A POINT IS AT THE CRONER OR IN A LINE *******/
+/******* FIND OUT IF A POINT IS AT THE CORNER OR IN A LINE *******/
 /*****************************************************************/
 int identifyPoint(double* angles) {
     // set the tolerance angle to detect as straight line angle+-
@@ -354,43 +364,7 @@ Mat backProjection(Mat sampleHist, Mat image) {
     return result;
 }
 
-MatND getHistogram(Mat image) {
-    MatND histogram;
-    
-    int channelNumbers[] = {0, 1, 2};
-    int* numberBins     = new int[image.channels()];
-    
-    for (int i = 0; i < image.channels(); i++) {
-        numberBins[i]       = 4.0;
-    }
-    
-    float channelRange[]            = {0.0, 255.0};
-    const float* channelRanges[]    = {channelRange, channelRange, channelRange};
-    
-    calcHist( &image, 1, channelNumbers, Mat(), histogram, image.channels(), numberBins, channelRanges );
-    
-    //normalize histograms
-    normalize(histogram, histogram, 1.0);
-    
-    return histogram;
-}
-
-MatND getSampleHist() {
-    // get sample image
-    Mat sampleIMG = imread(constant::directory + "/Assignment2VS/BlueBookPixels.png", CV_LOAD_IMAGE_COLOR);
-    
-    // convert image to HSL
-    Mat hlsSample;
-    //cvtColor(sampleIMG, hlsSample, CV_BGR2HLS);
-    cvtColor(sampleIMG, hlsSample, CV_BGR2RGB);
-    
-    // get normalized histogram for sample image
-    MatND histo = getHistogram(hlsSample);
-    
-    return histo;
-}
-
-// THRESHOLD
+/**** THRESHOLD ****/
 Mat thresholdIMG(Mat image) {
     Mat threshImage;
     double maxValue = 255;

@@ -9,6 +9,7 @@
 #include <opencv2/opencv.hpp>
 #include "ImageUtils.hpp"
 #include <opencv2/imgproc.hpp>
+#include "Constants.h"
 
 // IMAGELOADER
 Mat* loadImages(int number_of_images, string image_files[], string file_location) {
@@ -19,7 +20,7 @@ Mat* loadImages(int number_of_images, string image_files[], string file_location
     for (int file_no=0; (file_no < number_of_images); file_no++) {
         string filename(file_location);
         filename.append(image_files[file_no]);
-
+        
         //COLOR
         images[file_no] = imread(filename, CV_LOAD_IMAGE_COLOR);
         
@@ -56,8 +57,8 @@ Mat* getPages() {
     
     /*********** load images ***********/
     Mat* myImages = loadImages(numberOfImages, image_files, file_location);
-
-
+    
+    
     //CROPP EXPERIMENTAL
     Mat* croppedImgs = new Mat[numberOfImages];
     
@@ -68,7 +69,7 @@ Mat* getPages() {
         Mat resizedImage;
         resize(myImages[i](myROI),croppedImgs[i],size);
     }
-
+    
     return croppedImgs;
 }
 
@@ -101,7 +102,7 @@ Mat* getPhotos() {
     
     for(int i = 0; i < numberOfPhotos; i++) {
         Size size(photos[i].cols/2, photos[i].rows/2);
-
+        
         resize(photos[i], resizedImage[i], size);
     }
     
@@ -121,12 +122,12 @@ Mat* getChamferImg(Mat img) {
     // threshold img
     Mat threshImage;
     adaptiveThreshold(edgeImg, threshImage, 255, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY_INV, 3, 2);
-
+    
     // chamfer img
     Mat chamfImg;
     distanceTransform(threshImage, chamfImg, CV_DIST_L2, 3);
     
-
+    
     Mat* chmfrImg = new Mat;
     chmfrImg[0] = chamfImg;
     
