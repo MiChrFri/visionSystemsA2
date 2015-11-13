@@ -104,7 +104,7 @@ int main(int argc, const char * argv[]) {
             }
             
             vector<vector<int>> lines;
-            vector<int> corners;
+            vector<vector<int>> corners;
             
             /// Draw polygonal contour + bonding rects + circles
             for( int ii = 0; ii < contours.size(); ii++ ) {
@@ -124,7 +124,7 @@ int main(int argc, const char * argv[]) {
                 
                 switch(pointProp){
                     case CORNER:
-                        corners.push_back(startPoint);
+                        corners.push_back({startPoint, nbees[0], nbees[1]});
                         color = Scalar( 0, 0, 0);
                         break;
                     case SIDE:
@@ -143,17 +143,27 @@ int main(int argc, const char * argv[]) {
             // GET THE POINTS OF THE 4 SIDES
             vector<vector<int>> sides = getSides(lines);
             
-            
-            if(corners.size() != 4 || lines.size() != 16) {
-                if(lines.size() != 16) {
-                    for(int ii = 0; ii < 4; ii++) {
-                        if(sides[ii].size() != 5 && sides[ii].size() != 7){
-                            cout << sides[ii].size() << " ⛔️ " << endl;
+            for(int ii = 0; ii < corners.size(); ii++) {
+                vector<int> edges = getEdges(corners[ii][0], sides);
+                
+                if(edges.size() == 1) {
+                    
+                    cout << "the missing corner starts with: " << corners[ii][0] << endl;
+
+                    int missing = corners[ii][1];
+                    
+                    for(int iii = 0; iii < sides.size(); iii++) {
+                        if(inVector(corners[ii][1], sides[iii])) {
+                            missing = corners[ii][2];
                         }
                     }
+                    
+                    cout << "FUCK YOU: " << missing << endl;
+
                 }
-                cout << "---" << endl;
             }
+            
+                
             
             
             if(corners.size() == 4 && lines.size() == 16) {
@@ -165,10 +175,10 @@ int main(int argc, const char * argv[]) {
                 ////// TRANSFORMATION
                 // write corner points to array
                 Point2f srcQua[4];
-                srcQua[0] = center[corners[0]];
-                srcQua[1] = center[corners[1]];
-                srcQua[2] = center[corners[2]];
-                srcQua[3] = center[corners[3]];
+                srcQua[0] = center[corners[0][0]];
+                srcQua[1] = center[corners[1][0]];
+                srcQua[2] = center[corners[2][0]];
+                srcQua[3] = center[corners[3][0]];
                 
                 Mat* transformedImg = new Mat[1];
                 transformedImg = mapInRect(origImage, srcQua);
@@ -199,7 +209,6 @@ return 0;
 }
 
 vector<int> getEdges(int corner, vector<vector<int>> sides) {
-    
     vector<int> edges;
     
     for(int i = 0; i < sides.size(); i++) {
