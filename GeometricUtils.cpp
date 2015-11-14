@@ -91,6 +91,8 @@ Mat* mapInRect(Mat srcImage, Point2f *sourcePoints ) {
     warp_mat = getPerspectiveTransform( sourcePoints, dstQua );
     warpPerspective(srcImage, warp_dst, warp_mat, warp_dst.size());
     
+    imshow("aksgda", srcImage);
+    
     Mat* rtrnImg = new Mat;
     rtrnImg[0] = warp_dst;
     

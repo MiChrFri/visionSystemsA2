@@ -18,6 +18,7 @@
 #include "GeometricUtils.hpp"
 #include "Debug.hpp"
 
+// Struct for sorting
 struct {
     bool operator() (Point pt1, Point pt2) {
         return (pt1.y > pt2.y);
@@ -73,7 +74,7 @@ int main(int argc, const char * argv[]) {
         cout << "loading images failed!" << endl;
     }
     else {
-        for(int i = 0; i < 1; i++) {
+        for(int i = 1; i < 2; i++) {
             // convert image to HSL
             Mat origImage;
             origImage = photos[i];
@@ -134,8 +135,19 @@ int main(int argc, const char * argv[]) {
                 
                 switch(pointProp){
                     case CORNER:
-                        corners.push_back({startPoint, nbees[0], nbees[1]});
-                        color = Scalar( 0, 0, 0);
+                        if(corners.size() > 0) {
+                            for(int iii = 0; iii < corners.size(); iii++) {
+                                if(!closeToCorner(center[startPoint], center[corners[iii][0]])) {
+                                    corners.push_back({startPoint, nbees[0], nbees[1]});
+                                    color = Scalar( 0, 0, 0);
+                                }
+                            }
+                        }
+                        else {
+                            corners.push_back({startPoint, nbees[0], nbees[1]});
+                            color = Scalar( 0, 0, 0);
+                        }
+                        
                         break;
                     case SIDE:
                         lines.push_back({startPoint, nbees[0], nbees[1]});
@@ -145,68 +157,64 @@ int main(int argc, const char * argv[]) {
                         break;
                 }
                 
-                circle( origImage, center[ii], 5, color, 1, 20, 0 );
+                //circle( origImage, center[ii], 5, color, 1, 20, 0 );
             }
             
             // GET THE POINTS OF THE 4 SIDES
             vector<vector<int>> sides = getSides(lines);
             
-            
             // CALCULATE MISSING CORNERS
             vector<vector<Point>> blindLines = getBlindLines(corners, sides, center);
             
-            
-            vector<Point> intersections = findIntersectionPoints(blindLines);
-            
-            //////
             vector<Point> cornerPoints;
             
-            if(cornerPoints.size() == 0) {
-                for(int ii = 0; ii < intersections.size(); ii++) {
-                    bool valid = true;
-                    for(int iii = 0; iii < corners.size(); iii++) {
-                        if(closeToCorner(intersections[ii], center[corners[iii][0]])) {
-                            valid = false;
-                        }
-                    }
-                    
-                    if(valid) {
-                        circle( origImage, intersections[ii], 5, Scalar(160, 0, 255), 1, 20, 0 );
-
-                        bool equal = false;
-                        for(int iii = 0; iii < cornerPoints.size(); iii++) {
-                            if(intersections[ii] == cornerPoints[iii]) {
-                                equal = true;
+            if(corners.size() <= 4) {
+                vector<Point> intersections = findIntersectionPoints(blindLines);
+        
+                if(cornerPoints.size() == 0) {
+                    for(int ii = 0; ii < intersections.size(); ii++) {
+                        bool valid = true;
+                        for(int iii = 0; iii < corners.size(); iii++) {
+                            if(closeToCorner(intersections[ii], center[corners[iii][0]])) {
+                                valid = false;
                             }
                         }
                         
-                        if(!equal) {
-                            cornerPoints.push_back(intersections[ii]);
+                        if(valid) {
+                            bool equal = false;
+                            for(int iii = 0; iii < cornerPoints.size(); iii++) {
+                                if(intersections[ii] == cornerPoints[iii]) {
+                                    equal = true;
+                                }
+                            }
+                            
+                            if(!equal) {
+                                cornerPoints.push_back(intersections[ii]);
+                            }
                         }
                     }
                 }
             }
-            
+    
             for(int ii = 0; ii < corners.size(); ii++) {
                 cornerPoints.push_back(center[corners[ii][0]]);
+                
+                cout << "X" << ii << ": " << center[corners[ii][0]] << endl;
             }
             
             sort(cornerPoints.begin(), cornerPoints.end(), pointSorter);
             
             for(int x = 0; x < cornerPoints.size(); x++) {
                 cout << "SORTED: " << cornerPoints[x] << endl;
+                circle( origImage, cornerPoints[x], 5, Scalar(160, 0, 255), 1, 20, 0 );
             }
-                
+            
             imshow("pagePhoto" + to_string(i), photos[i]);
             moveWindow("pagePhoto" + to_string(i), 300, 0);
-            
-            cout << "------" << cornerPoints.size() << endl;
-            //if(corners.size() == 4 && lines.size() == 16) {
-            if(cornerPoints.size() == 4) {
-                cout << "point: " << i << " has " << lines.size() << " lines & " << corners.size() << " corners -> ✅" << endl;
-                
+
+            if(cornerPoints.size() < 40) {
                 // log out sides
-                logSides(sides);
+                //logSides(sides);
                 
                 ////// TRANSFORMATION
                 // write corner points to array
@@ -215,16 +223,11 @@ int main(int argc, const char * argv[]) {
                 srcQua[1] = cornerPoints[1];
                 srcQua[2] = cornerPoints[2];
                 srcQua[3] = cornerPoints[3];
-
-//                srcQua[0] = center[corners[0][0]];
-//                srcQua[1] = center[corners[1][0]];
-//                srcQua[2] = center[corners[2][0]];
-//                srcQua[3] = center[corners[3][0]];
                 
                 Mat* transformedImg = new Mat[1];
                 transformedImg = mapInRect(origImage, srcQua);
                 
-                imshow(to_string(rand()), transformedImg[0]);
+                imshow("transformed" + to_string(i), transformedImg[0]);
                 
                 //// EXPERIMENTAL TEMPLATE MATCHING
                 int highestMatch[2] = {0, 0};
@@ -243,7 +246,6 @@ int main(int argc, const char * argv[]) {
             }
         }
     }
-    
     
     cout << "press any key to end the programm" << endl;
     waitKey(0);
