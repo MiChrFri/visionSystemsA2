@@ -31,7 +31,7 @@ int* getNeighbours(int baseIndex, vector<Point2f> points);
 bool inVector(int val, vector<int>vec);
 int inSameSide(int val1, int val2,  vector<vector<int>> sides);
 vector<vector<Point>> getBlindLines(vector<vector<int>> corners, vector<vector<int>> sides, vector<Point2f>center);
-vector<Point> findIntersectionPoints(vector<vector<Point>> lines);
+vector<Point2f> findIntersectionPoints(vector<vector<Point>> lines);
 
 vector<vector<int>> getSides(vector<vector<int>> lines);
 vector<int> getEdges(int corner, vector<vector<int>> sides);
@@ -63,18 +63,12 @@ int main(int argc, const char * argv[]) {
     if(pages->empty()) {
         cout << "loading images failed!" << endl;
     }
-    else {
-        for(int i = 0; i < 13; i++) {
-            //string wi = "page_" + to_string(i);
-            //imshow(wi, pages[i]);
-        }
-    }
     
     if(photos->empty()) {
         cout << "loading images failed!" << endl;
     }
     else {
-        for(int i = 1; i < 2; i++) {
+        for(int i = 0; i < 10; i++) {
             // convert image to HSL
             Mat origImage;
             origImage = photos[i];
@@ -157,55 +151,66 @@ int main(int argc, const char * argv[]) {
                         break;
                 }
                 
-                //circle( origImage, center[ii], 5, color, 1, 20, 0 );
+                circle( origImage, center[ii], 5, color, 1, 20, 0 );
             }
             
             // GET THE POINTS OF THE 4 SIDES
             vector<vector<int>> sides = getSides(lines);
+            vector<Point2f> cornerPoints;
+            
+            for(int ii = 0; ii < corners.size(); ii++) {
+                bool gotIt = false;
+               
+                for(int iii = 0; iii < cornerPoints.size(); iii++){
+                    if(center[corners[ii][0]] == cornerPoints[iii]) {
+                        gotIt = true;
+                    }
+                }
+                if(!gotIt) {
+                    cornerPoints.push_back(center[corners[ii][0]]);
+                }
+            }
             
             // CALCULATE MISSING CORNERS
             vector<vector<Point>> blindLines = getBlindLines(corners, sides, center);
             
-            vector<Point> cornerPoints;
-            
-            if(corners.size() <= 4) {
-                vector<Point> intersections = findIntersectionPoints(blindLines);
+            for(int ii = 0; ii < blindLines.size(); ii++) {
+                line(origImage, blindLines[ii][0], blindLines[ii][1], Scalar(0,0,200), 1, 20, 0 );
+            }
         
-                if(cornerPoints.size() == 0) {
-                    for(int ii = 0; ii < intersections.size(); ii++) {
-                        bool valid = true;
-                        for(int iii = 0; iii < corners.size(); iii++) {
-                            if(closeToCorner(intersections[ii], center[corners[iii][0]])) {
-                                valid = false;
+            if(corners.size() <= 4) {
+                vector<Point2f> intersections = findIntersectionPoints(blindLines);
+        
+                for(int ii = 0; ii < intersections.size(); ii++) {
+                    bool valid = true;
+                    
+                    for(int iii = 0; iii < corners.size(); iii++) {
+                        if(closeToCorner(intersections[ii], center[corners[iii][0]])) {
+                            valid = false;
+                        }
+                    }
+                    
+                    if(valid) {
+                        bool equal = false;
+                        
+                        for(int iii = 0; iii < cornerPoints.size(); iii++) {
+                            
+                            if(intersections[ii] == cornerPoints[iii]) {
+                                equal = true;
                             }
                         }
                         
-                        if(valid) {
-                            bool equal = false;
-                            for(int iii = 0; iii < cornerPoints.size(); iii++) {
-                                if(intersections[ii] == cornerPoints[iii]) {
-                                    equal = true;
-                                }
-                            }
-                            
-                            if(!equal) {
-                                cornerPoints.push_back(intersections[ii]);
-                            }
+                        if(!equal) {
+                            cornerPoints.push_back(intersections[ii]);
                         }
                     }
                 }
-            }
-    
-            for(int ii = 0; ii < corners.size(); ii++) {
-                cornerPoints.push_back(center[corners[ii][0]]);
-                
-                cout << "X" << ii << ": " << center[corners[ii][0]] << endl;
             }
             
             sort(cornerPoints.begin(), cornerPoints.end(), pointSorter);
             
             for(int x = 0; x < cornerPoints.size(); x++) {
-                cout << "SORTED: " << cornerPoints[x] << endl;
+                cout << cornerPoints[x] << endl;
                 circle( origImage, cornerPoints[x], 5, Scalar(160, 0, 255), 1, 20, 0 );
             }
             
@@ -227,7 +232,8 @@ int main(int argc, const char * argv[]) {
                 Mat* transformedImg = new Mat[1];
                 transformedImg = mapInRect(origImage, srcQua);
                 
-                imshow("transformed" + to_string(i), transformedImg[0]);
+                imshow("asd" + to_string(i), transformedImg[0]);
+              
                 
                 //// EXPERIMENTAL TEMPLATE MATCHING
                 int highestMatch[2] = {0, 0};
@@ -462,8 +468,8 @@ vector<int> getEdges(int corner, vector<vector<int>> sides) {
     return edges;
 }
 
-vector<Point> findIntersectionPoints(vector<vector<Point>> lines) {
-    vector<Point> matches;
+vector<Point2f> findIntersectionPoints(vector<vector<Point>> lines) {
+    vector<Point2f> matches;
     
     for(int ii = 0; ii < lines.size(); ii++) {
         for(int iii = 1; iii < lines.size(); iii++) {
