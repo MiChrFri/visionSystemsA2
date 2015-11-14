@@ -18,10 +18,20 @@
 #include "GeometricUtils.hpp"
 #include "Debug.hpp"
 
+struct {
+    bool operator() (Point pt1, Point pt2) {
+        return (pt1.y > pt2.y);
+    }
+} pointSorter;
+
 // function declarations
 void displayImage(Mat image);
 int* getNeighbours(int baseIndex, vector<Point2f> points);
 bool inVector(int val, vector<int>vec);
+int inSameSide(int val1, int val2,  vector<vector<int>> sides);
+vector<vector<Point>> getBlindLines(vector<vector<int>> corners, vector<vector<int>> sides, vector<Point2f>center);
+vector<Point> findIntersectionPoints(vector<vector<Point>> lines);
+
 vector<vector<int>> getSides(vector<vector<int>> lines);
 vector<int> getEdges(int corner, vector<vector<int>> sides);
 
@@ -137,36 +147,62 @@ int main(int argc, const char * argv[]) {
                 
                 circle( origImage, center[ii], 5, color, 1, 20, 0 );
             }
-            imshow("pagePhoto" + to_string(i), photos[i]);
-            moveWindow("pagePhoto" + to_string(i), 300, 0);
             
             // GET THE POINTS OF THE 4 SIDES
             vector<vector<int>> sides = getSides(lines);
             
-            for(int ii = 0; ii < corners.size(); ii++) {
-                vector<int> edges = getEdges(corners[ii][0], sides);
-                
-                if(edges.size() == 1) {
-                    
-                    cout << "the missing corner starts with: " << corners[ii][0] << endl;
-
-                    int missing = corners[ii][1];
-                    
-                    for(int iii = 0; iii < sides.size(); iii++) {
-                        if(inVector(corners[ii][1], sides[iii])) {
-                            missing = corners[ii][2];
+            
+            // CALCULATE MISSING CORNERS
+            vector<vector<Point>> blindLines = getBlindLines(corners, sides, center);
+            
+            
+            vector<Point> intersections = findIntersectionPoints(blindLines);
+            
+            //////
+            vector<Point> cornerPoints;
+            
+            if(cornerPoints.size() == 0) {
+                for(int ii = 0; ii < intersections.size(); ii++) {
+                    bool valid = true;
+                    for(int iii = 0; iii < corners.size(); iii++) {
+                        if(closeToCorner(intersections[ii], center[corners[iii][0]])) {
+                            valid = false;
                         }
                     }
                     
-                    cout << "FUCK YOU: " << missing << endl;
+                    if(valid) {
+                        circle( origImage, intersections[ii], 5, Scalar(160, 0, 255), 1, 20, 0 );
 
+                        bool equal = false;
+                        for(int iii = 0; iii < cornerPoints.size(); iii++) {
+                            if(intersections[ii] == cornerPoints[iii]) {
+                                equal = true;
+                            }
+                        }
+                        
+                        if(!equal) {
+                            cornerPoints.push_back(intersections[ii]);
+                        }
+                    }
                 }
             }
             
+            for(int ii = 0; ii < corners.size(); ii++) {
+                cornerPoints.push_back(center[corners[ii][0]]);
+            }
+            
+            sort(cornerPoints.begin(), cornerPoints.end(), pointSorter);
+            
+            for(int x = 0; x < cornerPoints.size(); x++) {
+                cout << "SORTED: " << cornerPoints[x] << endl;
+            }
                 
+            imshow("pagePhoto" + to_string(i), photos[i]);
+            moveWindow("pagePhoto" + to_string(i), 300, 0);
             
-            
-            if(corners.size() == 4 && lines.size() == 16) {
+            cout << "------" << cornerPoints.size() << endl;
+            //if(corners.size() == 4 && lines.size() == 16) {
+            if(cornerPoints.size() == 4) {
                 cout << "point: " << i << " has " << lines.size() << " lines & " << corners.size() << " corners -> ✅" << endl;
                 
                 // log out sides
@@ -175,13 +211,20 @@ int main(int argc, const char * argv[]) {
                 ////// TRANSFORMATION
                 // write corner points to array
                 Point2f srcQua[4];
-                srcQua[0] = center[corners[0][0]];
-                srcQua[1] = center[corners[1][0]];
-                srcQua[2] = center[corners[2][0]];
-                srcQua[3] = center[corners[3][0]];
+                srcQua[0] = cornerPoints[0];
+                srcQua[1] = cornerPoints[1];
+                srcQua[2] = cornerPoints[2];
+                srcQua[3] = cornerPoints[3];
+
+//                srcQua[0] = center[corners[0][0]];
+//                srcQua[1] = center[corners[1][0]];
+//                srcQua[2] = center[corners[2][0]];
+//                srcQua[3] = center[corners[3][0]];
                 
                 Mat* transformedImg = new Mat[1];
                 transformedImg = mapInRect(origImage, srcQua);
+                
+                imshow(to_string(rand()), transformedImg[0]);
                 
                 //// EXPERIMENTAL TEMPLATE MATCHING
                 int highestMatch[2] = {0, 0};
@@ -202,21 +245,10 @@ int main(int argc, const char * argv[]) {
     }
     
     
-cout << "press any key to end the programm" << endl;
-waitKey(0);
+    cout << "press any key to end the programm" << endl;
+    waitKey(0);
 
-return 0;
-}
-
-vector<int> getEdges(int corner, vector<vector<int>> sides) {
-    vector<int> edges;
-    
-    for(int i = 0; i < sides.size(); i++) {
-        if(inVector(corner, sides[i])) {
-            edges.push_back(i);
-        }
-    }
-    return edges;
+    return 0;
 }
 
 /***** GET THE FOUR SIDES OF THE DOCUMENT *****/
@@ -285,12 +317,24 @@ int matchPossibility(Mat pageImg, Mat matchImg) {
 }
 
 bool inVector(int val, vector<int>vec) {
-    if (find(vec.begin(), vec.end(),val)!=vec.end()) {
+    if (find(vec.begin(), vec.end(),val) != vec.end()) {
         return true;
     }
     else {
         return false;
     }
+}
+
+int inSameSide(int val1, int val2,  vector<vector<int>> sides) {
+    for(int i = 0; i < sides.size(); i++) {
+        if (find(sides[i].begin(), sides[i].end(),val1) != sides[i].end()) {
+            if (find(sides[i].begin(), sides[i].end(),val2) != sides[i].end()) {
+                return i;
+            }
+        }
+    }
+    
+    return -1;
 }
 
 /************ GET NEIGHBOUR POINTS ************/
@@ -302,14 +346,9 @@ int* getNeighbours(int baseIndex, vector<Point2f> points) {
         {INT_MAX, INT_MAX}
     };
     
-    int baseX = points[baseIndex].x;
-    int baseY =points[baseIndex].y;
-    
     for(int i = 0; i < points.size(); i ++) {
         if(i != baseIndex) {
-            int xDist = abs(baseX - points[i].x);
-            int yDist = abs(baseY - points[i].y);
-            int dist = xDist + yDist;
+            int dist = getSimpleDist(points[baseIndex], points[i]);
             
             if(dist < neighbours[0][0] || dist < neighbours[1][0]) {
                 if(neighbours[0][0] <= neighbours[1][0]) {
@@ -384,3 +423,72 @@ Mat thresholdIMG(Mat image) {
     return threshImage;
 }
 
+vector<vector<Point>> getBlindLines(vector<vector<int>> corners, vector<vector<int>> sides, vector<Point2f>center) {
+    vector<vector<Point>> blindLines;
+    
+    for(int ii = 0; ii < corners.size(); ii++) {
+        vector<int> edges = getEdges(corners[ii][0], sides);
+        
+        int missing = corners[ii][1];
+        
+        for(int iii = 0; iii < sides.size(); iii++) {
+            if(inVector(corners[ii][1], sides[iii])) {
+                missing = corners[ii][2];
+            }
+        }
+        
+        Point a = center[missing];
+        Point b = center[corners[ii][0]];
+        double dist = getDistance(a, b);
+        Point c;
+        
+        c.x = b.x + (b.x - a.x) / dist * -(10 * dist);
+        c.y = b.y + (b.y - a.y) / dist * -(10 * dist);
+        
+        blindLines.push_back({c, b});
+    }
+    return blindLines;
+}
+
+vector<int> getEdges(int corner, vector<vector<int>> sides) {
+    vector<int> edges;
+    for(int i = 0; i < sides.size(); i++) {
+        if(inVector(corner, sides[i])) {
+            edges.push_back(i);
+        }
+    }
+    return edges;
+}
+
+vector<Point> findIntersectionPoints(vector<vector<Point>> lines) {
+    vector<Point> matches;
+    
+    for(int ii = 0; ii < lines.size(); ii++) {
+        for(int iii = 1; iii < lines.size(); iii++) {
+            Point p1 = lines[ii][0];
+            Point q1 = lines[ii][1];
+            Point p2 = lines[iii][0];
+            Point q2 = lines[iii][1];
+            
+            double d1x = q1.x - p1.x;
+            double d1y = q1.y - p1.y;
+            double m1 = d1y/d1x;
+            double c1 = p1.y - m1 * p1.x;
+            
+            double d2x = q2.x - p2.x;
+            double d2y = q2.y - p2.y;
+            double m2 = d2y/d2x;
+            double c2 = p2.y - m2 * p2.x;
+            
+            if( (m1 - m2) != 0){
+                double intersectionX = (c2 - c1) / (m1 - m2);
+                double intersectionY = m1 * intersectionX + c1;
+                if (intersectionX >= 0 && intersectionY >= 0) {
+                    Point match = Point(intersectionX, intersectionY);
+                    matches.push_back(match);
+                }
+            }
+        }
+    }
+    return matches;
+}

@@ -12,15 +12,8 @@
 //#include <iostream>
 #include <opencv2/opencv.hpp>
 
-
 using namespace std;
 using namespace cv;
-
-// function declarations
-double getDistance(Point pA, Point pB);
-double getAngle(Point base, Point neighbour);
-double* getAngles(Point pA, Point pB, Point pC);
-double randInDegree(double rand);
 
 // functions
 double getDistance(Point pA, Point pB) {
@@ -102,4 +95,22 @@ Mat* mapInRect(Mat srcImage, Point2f *sourcePoints ) {
     rtrnImg[0] = warp_dst;
     
     return rtrnImg;
+}
+
+bool closeToCorner(Point pA, Point corner) {
+    int tolerance = 20;
+    
+    if(getSimpleDist(pA, corner) < tolerance) {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+int getSimpleDist(Point a, Point b) {
+    int xDist = abs(a.x - b.x);
+    int yDist = abs(a.y - b.y);
+    
+    return xDist + yDist;
 }
