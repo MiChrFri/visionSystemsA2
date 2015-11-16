@@ -21,6 +21,12 @@ double getDistance(Point pA, Point pB) {
     return sqrt(c);
 }
 
+double angleBetween2Lines(vector<Point> line1, vector<Point> line2) {
+    double angle1 = atan2(line1[0].y - line1[1].y, line1[0].x - line1[1].x);
+    double angle2 = atan2(line2[0].y - line2[1].y, line2[0].x - line2[1].x);
+    return randInDegree(angle1 - angle2);
+}
+
 double getAngle(Point base, Point neighbour) {
     double a = abs(neighbour.x - base.x);
     double b = abs(neighbour.y - base.y);

@@ -6,26 +6,24 @@
 //  Copyright © 2015 FricknMike. All rights reserved.
 //
 
-#include <iostream>
+//#include <iostream>
+//#include <fstream>
 #include <opencv2/opencv.hpp>
-#include <fstream>
-
 #include <cmath>
 
-// custom includes
 #include "ImageUtils.hpp"
 #include "HistogramUtils.hpp"
 #include "GeometricUtils.hpp"
 #include "Debug.hpp"
 
-// Struct for sorting
+/**** Struct for sorting ****/
 struct {
     bool operator() (Point pt1, Point pt2) {
         return (pt1.y > pt2.y);
     }
 } pointSorter;
 
-// function declarations
+/**** function declarations ****/
 void displayImage(Mat image);
 int* getNeighbours(int baseIndex, vector<Point2f> points);
 bool inVector(int val, vector<int>vec);
@@ -36,7 +34,7 @@ vector<Point2f> findIntersectionPoints(vector<vector<Point>> lines);
 vector<vector<int>> getSides(vector<vector<int>> lines);
 vector<int> getEdges(int corner, vector<vector<int>> sides);
 
-// ALGOS
+/***** vision algorithms *****/
 Mat thresholdIMG(Mat image);
 Mat adaptiveThresholdImg(Mat image);
 Mat backProjection(Mat* sampleHist, Mat* inputImg);
@@ -46,12 +44,13 @@ int matchPossibility(Mat pageImg, Mat matchImg);
 int identifyPoint(double* angles);
 double getAngle(Point base, Point neighbour);
 
-// GLOABAL VARS
+/**** ENUMS ****/
 enum pointProp {
     UNKNOWN, CORNER, SIDE, WRONGNEIGHBOUR
 };
 
-// main
+/**************** main ******************/
+/****************************************/
 int main(int argc, const char * argv[]) {
     logVersionNumber();
     
@@ -65,9 +64,7 @@ int main(int argc, const char * argv[]) {
         // get sample histogram
         Mat sampleHist = getSampleHist();
         
-        cout << &sampleHist;
-        
-        for(int i = 0; i < 12; i++) {
+        for(int i = 4; i < 5 ; i++) {
             // use variable name for readability
             Mat rgbImg = photos[i];
             
@@ -144,7 +141,7 @@ int main(int argc, const char * argv[]) {
                         break;
                 }
                 
-                circle(rgbImg, center[ii], 5, color, 1, 20, 0 );
+                //circle(rgbImg, center[ii], 5, color, 1, 20, 0 );
             }
             
             // GET THE POINTS OF THE 4 SIDES
@@ -166,6 +163,8 @@ int main(int argc, const char * argv[]) {
             
             // CALCULATE MISSING CORNERS
             vector<vector<Point>> blindLines = getBlindLines(corners, sides, center);
+            
+            vector<double> angles;
             
             for(int ii = 0; ii < blindLines.size(); ii++) {
                 line(rgbImg, blindLines[ii][0], blindLines[ii][1], Scalar(0,0,200), 1, 20, 0 );
@@ -200,11 +199,12 @@ int main(int argc, const char * argv[]) {
                 }
             }
             
+            
             sort(cornerPoints.begin(), cornerPoints.end(), pointSorter);
             
-            for(int x = 0; x < cornerPoints.size(); x++) {
-                cout << cornerPoints[x] << endl;
-                circle(rgbImg, cornerPoints[x], 5, Scalar(160, 0, 255), 1, 20, 0 );
+            
+            for(int ii = 0; ii < cornerPoints.size(); ii++) {
+                circle(rgbImg, cornerPoints[ii], 5, Scalar(160, 0, 255), 1, 20, 0 );
             }
             
             imshow("pagePhoto" + to_string(i), photos[i]);
@@ -431,26 +431,30 @@ Mat thresholdIMG(Mat image) {
 vector<vector<Point>> getBlindLines(vector<vector<int>> corners, vector<vector<int>> sides, vector<Point2f>center) {
     vector<vector<Point>> blindLines;
     
-    for(int ii = 0; ii < corners.size(); ii++) {
-        vector<int> edges = getEdges(corners[ii][0], sides);
+    for(int i = 0; i < corners.size(); i++) {
+        vector<int> edges = getEdges(corners[i][0], sides);
+        vector<int> missing = {};
         
-        int missing = corners[ii][1];
-        
-        for(int iii = 0; iii < sides.size(); iii++) {
-            if(inVector(corners[ii][1], sides[iii])) {
-                missing = corners[ii][2];
+        for(int ii = 0; ii < sides.size(); ii++) {
+            if(!inVector(corners[i][1], sides[ii])) {
+                missing.push_back(corners[i][1]);
+            }
+            if(!inVector(corners[i][2], sides[ii])) {
+                missing.push_back(corners[i][2]);
             }
         }
         
-        Point a = center[missing];
-        Point b = center[corners[ii][0]];
-        double dist = getDistance(a, b);
-        Point c;
-        
-        c.x = b.x + (b.x - a.x) / dist * -(10 * dist);
-        c.y = b.y + (b.y - a.y) / dist * -(10 * dist);
-        
-        blindLines.push_back({c, b});
+        for(int ii = 0; ii < missing.size()/3; ii++) {
+            Point a = center[missing[ii]];
+            Point b = center[corners[i][0]];
+            double dist = getDistance(a, b);
+            Point c;
+            
+            c.x = b.x + (b.x - a.x) / dist * -(10 * dist);
+            c.y = b.y + (b.y - a.y) / dist * -(10 * dist);
+            
+            blindLines.push_back({c, b});
+        }
     }
     return blindLines;
 }
@@ -468,30 +472,35 @@ vector<int> getEdges(int corner, vector<vector<int>> sides) {
 vector<Point2f> findIntersectionPoints(vector<vector<Point>> lines) {
     vector<Point2f> matches;
     
-    for(int ii = 0; ii < lines.size(); ii++) {
-        for(int iii = 1; iii < lines.size(); iii++) {
-            Point p1 = lines[ii][0];
-            Point q1 = lines[ii][1];
-            Point p2 = lines[iii][0];
-            Point q2 = lines[iii][1];
-            
-            double d1x = q1.x - p1.x;
-            double d1y = q1.y - p1.y;
-            double m1 = d1y/d1x;
-            double c1 = p1.y - m1 * p1.x;
-            
-            double d2x = q2.x - p2.x;
-            double d2y = q2.y - p2.y;
-            double m2 = d2y/d2x;
-            double c2 = p2.y - m2 * p2.x;
-            
-            if( (m1 - m2) != 0){
-                double intersectionX = (c2 - c1) / (m1 - m2);
-                double intersectionY = m1 * intersectionX + c1;
-                if (intersectionX >= 0 && intersectionY >= 0) {
-                    Point match = Point(intersectionX, intersectionY);
-                    matches.push_back(match);
+    for(int i = 0; i < lines.size(); i++) {
+        for(int ii = 1; ii < lines.size(); ii++) {
+            double angle = abs(angleBetween2Lines(lines[i], lines[ii]));
+            int tolerance = 20;
+            if( abs(angle - 90) < tolerance) {
+                Point p1 = lines[i][0];
+                Point q1 = lines[i][1];
+                Point p2 = lines[ii][0];
+                Point q2 = lines[ii][1];
+                
+                double d1x = q1.x - p1.x;
+                double d1y = q1.y - p1.y;
+                double m1 = d1y/d1x;
+                double c1 = p1.y - m1 * p1.x;
+                
+                double d2x = q2.x - p2.x;
+                double d2y = q2.y - p2.y;
+                double m2 = d2y/d2x;
+                double c2 = p2.y - m2 * p2.x;
+                
+                if( (m1 - m2) != 0){
+                    double intersectionX = (c2 - c1) / (m1 - m2);
+                    double intersectionY = m1 * intersectionX + c1;
+                    if (intersectionX >= 0 && intersectionY >= 0) {
+                        Point match = Point(intersectionX, intersectionY);
+                        matches.push_back(match);
+                    }
                 }
+
             }
         }
     }
