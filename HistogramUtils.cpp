@@ -90,13 +90,8 @@ MatND getSampleHist() {
     // get sample image
     Mat sampleIMG = imread(constant::directory + "/Assignment2VS/BlueBookPixels.png", CV_LOAD_IMAGE_COLOR);
     
-    // convert image to HSL
-    Mat hlsSample;
-    //cvtColor(sampleIMG, hlsSample, CV_BGR2HLS);
-    cvtColor(sampleIMG, hlsSample, CV_BGR2RGB);
-    
     // get normalized histogram for sample image
-    MatND histo = getHistogram(hlsSample);
+    MatND histo = getHistogram(sampleIMG);
     
     return histo;
 }

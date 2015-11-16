@@ -10,6 +10,11 @@
 
 using namespace std;
 
+void logVersionNumber() {
+    cout << "/********** OpenCV version: " << CV_VERSION << " **********/" << endl;
+    cout << "/*******************************************/" << endl;
+}
+
 void logSides(vector<vector<int>> sides) {
     cout << "side1: ";
     for(int i = 0; i < sides[0].size(); i++) {

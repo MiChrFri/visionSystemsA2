@@ -39,7 +39,7 @@ vector<int> getEdges(int corner, vector<vector<int>> sides);
 // ALGOS
 Mat thresholdIMG(Mat image);
 Mat adaptiveThresholdImg(Mat image);
-Mat backProjection(Mat sampleHist, Mat inputImg);
+Mat backProjection(Mat* sampleHist, Mat* inputImg);
 
 int matchPossibility(Mat pageImg, Mat matchImg);
 
@@ -53,33 +53,26 @@ enum pointProp {
 
 // main
 int main(int argc, const char * argv[]) {
-    
-    /************ openCV VERSION ************/
-    cout << "openCV version: " << CV_VERSION << "\n\n";
+    logVersionNumber();
     
     Mat* pages  = getPages();
     Mat* photos = getPhotos();
     
-    if(pages->empty()) {
-        cout << "loading images failed!" << endl;
-    }
-    
-    if(photos->empty()) {
+    if(pages->empty() || photos->empty()) {
         cout << "loading images failed!" << endl;
     }
     else {
-        for(int i = 0; i < 10; i++) {
-            // convert image to HSL
-            Mat origImage;
-            origImage = photos[i];
-            
-            Mat rgbImg;
-            cvtColor(origImage, rgbImg, CV_BGR2RGB);
-            
-            Mat sampleHist = getSampleHist();
+        // get sample histogram
+        Mat sampleHist = getSampleHist();
+        
+        cout << &sampleHist;
+        
+        for(int i = 0; i < 12; i++) {
+            // use variable name for readability
+            Mat rgbImg = photos[i];
             
             // back projection
-            Mat BP = backProjection(sampleHist, rgbImg);
+            Mat BP = backProjection(&sampleHist, &rgbImg);
             
             // back threshold
             Mat img = thresholdIMG(BP);
@@ -151,7 +144,7 @@ int main(int argc, const char * argv[]) {
                         break;
                 }
                 
-                circle( origImage, center[ii], 5, color, 1, 20, 0 );
+                circle(rgbImg, center[ii], 5, color, 1, 20, 0 );
             }
             
             // GET THE POINTS OF THE 4 SIDES
@@ -175,7 +168,7 @@ int main(int argc, const char * argv[]) {
             vector<vector<Point>> blindLines = getBlindLines(corners, sides, center);
             
             for(int ii = 0; ii < blindLines.size(); ii++) {
-                line(origImage, blindLines[ii][0], blindLines[ii][1], Scalar(0,0,200), 1, 20, 0 );
+                line(rgbImg, blindLines[ii][0], blindLines[ii][1], Scalar(0,0,200), 1, 20, 0 );
             }
         
             if(corners.size() <= 4) {
@@ -211,7 +204,7 @@ int main(int argc, const char * argv[]) {
             
             for(int x = 0; x < cornerPoints.size(); x++) {
                 cout << cornerPoints[x] << endl;
-                circle( origImage, cornerPoints[x], 5, Scalar(160, 0, 255), 1, 20, 0 );
+                circle(rgbImg, cornerPoints[x], 5, Scalar(160, 0, 255), 1, 20, 0 );
             }
             
             imshow("pagePhoto" + to_string(i), photos[i]);
@@ -230,7 +223,7 @@ int main(int argc, const char * argv[]) {
                 srcQua[3] = cornerPoints[3];
                 
                 Mat* transformedImg = new Mat[1];
-                transformedImg = mapInRect(origImage, srcQua);
+                transformedImg = mapInRect(rgbImg, srcQua);
                 
                 imshow("asd" + to_string(i), transformedImg[0]);
               
@@ -402,20 +395,24 @@ int identifyPoint(double* angles) {
 /********************************************/
 
 /**** BACK PROJECTION ****/
-Mat backProjection(Mat sampleHist, Mat image) {
-    
+Mat backProjection(Mat* sampleHist, Mat* image) {
+    // set the channel range to the full 8 Bit
     float channelRange[] = {0.0, 255.0};
-    const float* channelRanges[]    = {channelRange, channelRange, channelRange};
     
-    int noOfChannels = image.channels();
+    // get the number of channel for this image
+    int noOfChannels = image->channels();
     
+    // get the channels of the image and set the ranges for each one
+    const float* channelRanges[noOfChannels];
     int channels[noOfChannels];
-    for (int i = 0; i < image.channels(); i++) {
-        channels[i]   = i;
+    for (int i = 0; i < image->channels(); i++) {
+        channels[i] = i;
+        channelRanges[i] = channelRange;
     }
     
+    // calculate the backprojection and return the result image
     Mat result;
-    calcBackProject( &image, 1, channels, sampleHist, result, channelRanges, 255.0);
+    calcBackProject(image, 1, channels, *sampleHist, result, channelRanges, 255.0);
     
     return result;
 }
