@@ -65,30 +65,33 @@ int main(int argc, const char * argv[]) {
         // get sample histogram
         Mat sampleHist = getSampleHist();
         
-        for(int i = 0; i < 12; i++) {
+        for(int i = 0; i < 3; i++) {
             // use variable name for readability
-            Mat rgbImg = photos[i];
+            Mat *rgbImg = new Mat;
+            rgbImg = &photos[i];
             
             // back projection
-            Mat BP = backProjection(&sampleHist, &rgbImg);
+            Mat BP = backProjection(&sampleHist, rgbImg);
             
             // back threshold
-            Mat img = thresholdIMG(&BP);
+            Mat treshImg = thresholdIMG(&BP);
+            
+            //release the backprojected image
+            BP.release();
             
             //find contours
             vector<vector<Point> > contours;
-            findContours(img, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE );
+            findContours(treshImg, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE );
             
-            ////////
+            //release the treshold image
+            treshImg.release();
             
-            RNG rng(12345);
-            /// Approximate contours to polygons + get bounding rects and circles
+            // find contours
             vector<vector<Point> > contours_poly( contours.size() );
             vector<Rect> boundRect( contours.size() );
             vector<Point2f>center( contours.size() );
             vector<float>radius( contours.size() );
             
-            //for( int ii = 0; ii < contours.size(); ii++ ){
             for( int ii = 0; ii < contours.size(); ii++ ){
                 approxPolyDP( Mat(contours[ii]), contours_poly[ii], 3, true );
                 minEnclosingCircle( (Mat)contours_poly[ii], center[ii], radius[ii] );
@@ -97,20 +100,24 @@ int main(int argc, const char * argv[]) {
             vector<vector<int>> lines;
             vector<vector<int>> corners;
             
-            /// Draw polygonal contour + bonding rects + circles
+            // work with contours
             for( int ii = 0; ii < contours.size(); ii++ ) {
                 Scalar color = Scalar( 0, 255, 0);
                 
                 int startPoint = ii;
+                
+                // get the two closest points
                 int *nbees = getNeighbours(&startPoint, &center);
                 
+                // the three angles of the triable with the 3 points
                 double *angles = getAngles(center[startPoint], center[nbees[0]], center[nbees[1]]);
                 
                 //Debug output
                 //cout << "POINTS: " << startPoint << "|" << nbees[0] << "|" << nbees[1] << endl;
                 //cout << "ANGLEEEEs: " << angles[0] << " | " << angles[1] << " | " << angles[2] << " | " << endl;
-                putText(photos[i], to_string(ii), cvPoint(center[ii].x, center[ii].y+13), FONT_HERSHEY_DUPLEX, 0.3, Scalar(0,0,255), 1, CV_AA);
+                putText(*rgbImg, to_string(ii), cvPoint(center[ii].x, center[ii].y+13), FONT_HERSHEY_DUPLEX, 0.3, Scalar(0,0,255), 1, CV_AA);
                 
+                // try to identifty whether a point is at a corner or in a line
                 int pointProp = identifyPoint(angles);
                 
                 switch(pointProp){
@@ -127,7 +134,6 @@ int main(int argc, const char * argv[]) {
                             corners.push_back({startPoint, nbees[0], nbees[1]});
                             color = Scalar( 0, 0, 0);
                         }
-                        
                         break;
                     case SIDE:
                         lines.push_back({startPoint, nbees[0], nbees[1]});
@@ -137,7 +143,7 @@ int main(int argc, const char * argv[]) {
                         break;
                 }
                 
-                circle(rgbImg, center[ii], 5, color, 1, 20, 0 );
+                circle(*rgbImg, center[ii], 5, color, 1, 20, 0 );
             }
             
             // GET THE POINTS OF THE 4 SIDES
@@ -161,7 +167,7 @@ int main(int argc, const char * argv[]) {
             vector<vector<Point>> blindLines = getBlindLines(corners, sides, center);
             
             for(int ii = 0; ii < blindLines.size(); ii++) {
-                line(rgbImg, blindLines[ii][0], blindLines[ii][1], Scalar(0,0,200), 1, 20, 0 );
+                line(*rgbImg, blindLines[ii][0], blindLines[ii][1], Scalar(0,0,200), 1, 20, 0 );
             }
         
             if(corners.size() <= 4) {
@@ -178,9 +184,7 @@ int main(int argc, const char * argv[]) {
                     
                     if(valid) {
                         bool equal = false;
-                        
                         for(int iii = 0; iii < cornerPoints.size(); iii++) {
-                            
                             if(intersections[ii] == cornerPoints[iii]) {
                                 equal = true;
                             }
@@ -193,14 +197,15 @@ int main(int argc, const char * argv[]) {
                 }
             }
             
+            // sort the points in the vector
             sort(cornerPoints.begin(), cornerPoints.end(), pointSorter);
             
             for(int x = 0; x < cornerPoints.size(); x++) {
                 cout << cornerPoints[x] << endl;
-                circle(rgbImg, cornerPoints[x], 5, Scalar(160, 0, 255), 1, 20, 0 );
+                circle(*rgbImg, cornerPoints[x], 5, Scalar(160, 0, 255), 1, 20, 0 );
             }
             
-            imshow("pagePhoto" + to_string(i), photos[i]);
+            imshow("pagePhoto" + to_string(i), *rgbImg);
             moveWindow("pagePhoto" + to_string(i), 300, 0);
 
             if(cornerPoints.size() < 40) {
@@ -216,10 +221,9 @@ int main(int argc, const char * argv[]) {
                 srcQua[3] = cornerPoints[3];
                 
                 Mat* transformedImg = new Mat[1];
-                transformedImg = mapInRect(rgbImg, srcQua);
+                transformedImg = mapInRect(*rgbImg, srcQua);
                 
                 imshow("asd" + to_string(i), transformedImg[0]);
-              
                 
                 //// EXPERIMENTAL TEMPLATE MATCHING
                 int highestMatch[2] = {0, 0};
@@ -232,9 +236,17 @@ int main(int argc, const char * argv[]) {
                     }
                 }
                 
+                // we don't need this image anymore
+                transformedImg[0].release();
+        
                 cout << "highest match = " << highestMatch[1] << " has index: " << highestMatch[0] << endl;
                 imshow("match" + to_string(i), pages[highestMatch[0]]);
                 moveWindow("match" + to_string(i), 0, 0);
+                
+                // release images that we don't need anymore
+                
+                transformedImg->release();
+                rgbImg->release();
             }
         }
     }
@@ -363,7 +375,6 @@ int* getNeighbours(int* baseIndex, vector<Point2f> *points) {
     
     return result;
 }
-
 
 /******* FIND OUT IF A POINT IS AT THE CORNER OR IN A LINE *******/
 /*****************************************************************/
