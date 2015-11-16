@@ -37,7 +37,7 @@ vector<vector<int>> getSides(vector<vector<int>> lines);
 vector<int> getEdges(int corner, vector<vector<int>> sides);
 
 // ALGOS
-Mat thresholdIMG(Mat image);
+Mat thresholdIMG(Mat* image);
 Mat adaptiveThresholdImg(Mat image);
 Mat backProjection(Mat* sampleHist, Mat* inputImg);
 
@@ -65,8 +65,6 @@ int main(int argc, const char * argv[]) {
         // get sample histogram
         Mat sampleHist = getSampleHist();
         
-        cout << &sampleHist;
-        
         for(int i = 0; i < 12; i++) {
             // use variable name for readability
             Mat rgbImg = photos[i];
@@ -75,16 +73,11 @@ int main(int argc, const char * argv[]) {
             Mat BP = backProjection(&sampleHist, &rgbImg);
             
             // back threshold
-            Mat img = thresholdIMG(BP);
-            
-            Mat output;
-            connectedComponents(img, output);
+            Mat img = thresholdIMG(&BP);
             
             //find contours
             vector<vector<Point> > contours;
-            Mat contourOutput = img.clone();
-            
-            findContours( contourOutput, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE );
+            findContours(img, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE );
             
             ////////
             
@@ -418,12 +411,12 @@ Mat backProjection(Mat* sampleHist, Mat* image) {
 }
 
 /**** THRESHOLD ****/
-Mat thresholdIMG(Mat image) {
+Mat thresholdIMG(Mat* image) {
     Mat threshImage;
     double maxValue = 255;
     
     //adaptiveThreshold(image, threshImage, maxValue, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 11, 2);
-    threshold(image, threshImage, 200, maxValue, THRESH_BINARY);
+    threshold(*image, threshImage, 200, maxValue, THRESH_BINARY);
     
     return threshImage;
 }
