@@ -64,7 +64,7 @@ int main(int argc, const char * argv[]) {
         // get sample histogram
         Mat sampleHist = getSampleHist();
         
-        for(int i = 4; i < 5 ; i++) {
+        for(int i = 33; i < 34 ; i++) {
             // use variable name for readability
             Mat rgbImg = photos[i];
             
@@ -473,10 +473,11 @@ vector<Point2f> findIntersectionPoints(vector<vector<Point>> lines) {
     vector<Point2f> matches;
     
     for(int i = 0; i < lines.size(); i++) {
-        for(int ii = 1; ii < lines.size(); ii++) {
+        for(int ii = 0; ii < lines.size(); ii++) {
             double angle = abs(angleBetween2Lines(lines[i], lines[ii]));
             int tolerance = 20;
-            if( abs(angle - 90) < tolerance) {
+
+            if( abs(angle - 90) < tolerance ||   abs(angle - 270) < tolerance) {
                 Point p1 = lines[i][0];
                 Point q1 = lines[i][1];
                 Point p2 = lines[ii][0];
