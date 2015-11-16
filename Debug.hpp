@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <opencv2/opencv.hpp>
 
+void logVersionNumber();
 void logSides(std::vector<std::vector<int>> sides);
 
 #endif /* Debug_hpp */

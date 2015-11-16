@@ -18,6 +18,7 @@
 #include "GeometricUtils.hpp"
 #include "Debug.hpp"
 
+// Struct for sorting
 struct {
     bool operator() (Point pt1, Point pt2) {
         return (pt1.y > pt2.y);
@@ -30,7 +31,7 @@ int* getNeighbours(int baseIndex, vector<Point2f> points);
 bool inVector(int val, vector<int>vec);
 int inSameSide(int val1, int val2,  vector<vector<int>> sides);
 vector<vector<Point>> getBlindLines(vector<vector<int>> corners, vector<vector<int>> sides, vector<Point2f>center);
-vector<Point> findIntersectionPoints(vector<vector<Point>> lines);
+vector<Point2f> findIntersectionPoints(vector<vector<Point>> lines);
 
 vector<vector<int>> getSides(vector<vector<int>> lines);
 vector<int> getEdges(int corner, vector<vector<int>> sides);
@@ -38,7 +39,7 @@ vector<int> getEdges(int corner, vector<vector<int>> sides);
 // ALGOS
 Mat thresholdIMG(Mat image);
 Mat adaptiveThresholdImg(Mat image);
-Mat backProjection(Mat sampleHist, Mat inputImg);
+Mat backProjection(Mat* sampleHist, Mat* inputImg);
 
 int matchPossibility(Mat pageImg, Mat matchImg);
 
@@ -52,39 +53,26 @@ enum pointProp {
 
 // main
 int main(int argc, const char * argv[]) {
-    
-    /************ openCV VERSION ************/
-    cout << "openCV version: " << CV_VERSION << "\n\n";
+    logVersionNumber();
     
     Mat* pages  = getPages();
     Mat* photos = getPhotos();
     
-    if(pages->empty()) {
+    if(pages->empty() || photos->empty()) {
         cout << "loading images failed!" << endl;
     }
     else {
-        for(int i = 0; i < 13; i++) {
-            //string wi = "page_" + to_string(i);
-            //imshow(wi, pages[i]);
-        }
-    }
-    
-    if(photos->empty()) {
-        cout << "loading images failed!" << endl;
-    }
-    else {
-        for(int i = 0; i < 1; i++) {
-            // convert image to HSL
-            Mat origImage;
-            origImage = photos[i];
-            
-            Mat rgbImg;
-            cvtColor(origImage, rgbImg, CV_BGR2RGB);
-            
-            Mat sampleHist = getSampleHist();
+        // get sample histogram
+        Mat sampleHist = getSampleHist();
+        
+        cout << &sampleHist;
+        
+        for(int i = 0; i < 12; i++) {
+            // use variable name for readability
+            Mat rgbImg = photos[i];
             
             // back projection
-            Mat BP = backProjection(sampleHist, rgbImg);
+            Mat BP = backProjection(&sampleHist, &rgbImg);
             
             // back threshold
             Mat img = thresholdIMG(BP);
@@ -134,8 +122,19 @@ int main(int argc, const char * argv[]) {
                 
                 switch(pointProp){
                     case CORNER:
-                        corners.push_back({startPoint, nbees[0], nbees[1]});
-                        color = Scalar( 0, 0, 0);
+                        if(corners.size() > 0) {
+                            for(int iii = 0; iii < corners.size(); iii++) {
+                                if(!closeToCorner(center[startPoint], center[corners[iii][0]])) {
+                                    corners.push_back({startPoint, nbees[0], nbees[1]});
+                                    color = Scalar( 0, 0, 0);
+                                }
+                            }
+                        }
+                        else {
+                            corners.push_back({startPoint, nbees[0], nbees[1]});
+                            color = Scalar( 0, 0, 0);
+                        }
+                        
                         break;
                     case SIDE:
                         lines.push_back({startPoint, nbees[0], nbees[1]});
@@ -145,25 +144,39 @@ int main(int argc, const char * argv[]) {
                         break;
                 }
                 
-                circle( origImage, center[ii], 5, color, 1, 20, 0 );
+                circle(rgbImg, center[ii], 5, color, 1, 20, 0 );
             }
             
             // GET THE POINTS OF THE 4 SIDES
             vector<vector<int>> sides = getSides(lines);
+            vector<Point2f> cornerPoints;
             
+            for(int ii = 0; ii < corners.size(); ii++) {
+                bool gotIt = false;
+               
+                for(int iii = 0; iii < cornerPoints.size(); iii++){
+                    if(center[corners[ii][0]] == cornerPoints[iii]) {
+                        gotIt = true;
+                    }
+                }
+                if(!gotIt) {
+                    cornerPoints.push_back(center[corners[ii][0]]);
+                }
+            }
             
             // CALCULATE MISSING CORNERS
             vector<vector<Point>> blindLines = getBlindLines(corners, sides, center);
             
-            
-            vector<Point> intersections = findIntersectionPoints(blindLines);
-            
-            //////
-            vector<Point> cornerPoints;
-            
-            if(cornerPoints.size() == 0) {
+            for(int ii = 0; ii < blindLines.size(); ii++) {
+                line(rgbImg, blindLines[ii][0], blindLines[ii][1], Scalar(0,0,200), 1, 20, 0 );
+            }
+        
+            if(corners.size() <= 4) {
+                vector<Point2f> intersections = findIntersectionPoints(blindLines);
+        
                 for(int ii = 0; ii < intersections.size(); ii++) {
                     bool valid = true;
+                    
                     for(int iii = 0; iii < corners.size(); iii++) {
                         if(closeToCorner(intersections[ii], center[corners[iii][0]])) {
                             valid = false;
@@ -171,10 +184,10 @@ int main(int argc, const char * argv[]) {
                     }
                     
                     if(valid) {
-                        circle( origImage, intersections[ii], 5, Scalar(160, 0, 255), 1, 20, 0 );
-
                         bool equal = false;
+                        
                         for(int iii = 0; iii < cornerPoints.size(); iii++) {
+                            
                             if(intersections[ii] == cornerPoints[iii]) {
                                 equal = true;
                             }
@@ -187,26 +200,19 @@ int main(int argc, const char * argv[]) {
                 }
             }
             
-            for(int ii = 0; ii < corners.size(); ii++) {
-                cornerPoints.push_back(center[corners[ii][0]]);
-            }
-            
             sort(cornerPoints.begin(), cornerPoints.end(), pointSorter);
             
             for(int x = 0; x < cornerPoints.size(); x++) {
-                cout << "SORTED: " << cornerPoints[x] << endl;
+                cout << cornerPoints[x] << endl;
+                circle(rgbImg, cornerPoints[x], 5, Scalar(160, 0, 255), 1, 20, 0 );
             }
-                
+            
             imshow("pagePhoto" + to_string(i), photos[i]);
             moveWindow("pagePhoto" + to_string(i), 300, 0);
-            
-            cout << "------" << cornerPoints.size() << endl;
-            //if(corners.size() == 4 && lines.size() == 16) {
-            if(cornerPoints.size() == 4) {
-                cout << "point: " << i << " has " << lines.size() << " lines & " << corners.size() << " corners -> ✅" << endl;
-                
+
+            if(cornerPoints.size() < 40) {
                 // log out sides
-                logSides(sides);
+                //logSides(sides);
                 
                 ////// TRANSFORMATION
                 // write corner points to array
@@ -215,16 +221,12 @@ int main(int argc, const char * argv[]) {
                 srcQua[1] = cornerPoints[1];
                 srcQua[2] = cornerPoints[2];
                 srcQua[3] = cornerPoints[3];
-
-//                srcQua[0] = center[corners[0][0]];
-//                srcQua[1] = center[corners[1][0]];
-//                srcQua[2] = center[corners[2][0]];
-//                srcQua[3] = center[corners[3][0]];
                 
                 Mat* transformedImg = new Mat[1];
-                transformedImg = mapInRect(origImage, srcQua);
+                transformedImg = mapInRect(rgbImg, srcQua);
                 
-                imshow(to_string(rand()), transformedImg[0]);
+                imshow("asd" + to_string(i), transformedImg[0]);
+              
                 
                 //// EXPERIMENTAL TEMPLATE MATCHING
                 int highestMatch[2] = {0, 0};
@@ -243,7 +245,6 @@ int main(int argc, const char * argv[]) {
             }
         }
     }
-    
     
     cout << "press any key to end the programm" << endl;
     waitKey(0);
@@ -394,20 +395,24 @@ int identifyPoint(double* angles) {
 /********************************************/
 
 /**** BACK PROJECTION ****/
-Mat backProjection(Mat sampleHist, Mat image) {
-    
+Mat backProjection(Mat* sampleHist, Mat* image) {
+    // set the channel range to the full 8 Bit
     float channelRange[] = {0.0, 255.0};
-    const float* channelRanges[]    = {channelRange, channelRange, channelRange};
     
-    int noOfChannels = image.channels();
+    // get the number of channel for this image
+    int noOfChannels = image->channels();
     
+    // get the channels of the image and set the ranges for each one
+    const float* channelRanges[noOfChannels];
     int channels[noOfChannels];
-    for (int i = 0; i < image.channels(); i++) {
-        channels[i]   = i;
+    for (int i = 0; i < image->channels(); i++) {
+        channels[i] = i;
+        channelRanges[i] = channelRange;
     }
     
+    // calculate the backprojection and return the result image
     Mat result;
-    calcBackProject( &image, 1, channels, sampleHist, result, channelRanges, 255.0);
+    calcBackProject(image, 1, channels, *sampleHist, result, channelRanges, 255.0);
     
     return result;
 }
@@ -460,8 +465,8 @@ vector<int> getEdges(int corner, vector<vector<int>> sides) {
     return edges;
 }
 
-vector<Point> findIntersectionPoints(vector<vector<Point>> lines) {
-    vector<Point> matches;
+vector<Point2f> findIntersectionPoints(vector<vector<Point>> lines) {
+    vector<Point2f> matches;
     
     for(int ii = 0; ii < lines.size(); ii++) {
         for(int iii = 1; iii < lines.size(); iii++) {

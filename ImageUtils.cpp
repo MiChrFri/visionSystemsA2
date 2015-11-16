@@ -13,15 +13,13 @@
 
 // IMAGELOADER
 Mat* loadImages(int number_of_images, string image_files[], string file_location) {
-    
-    // Load images
     Mat* images = new Mat[number_of_images];
     
     for (int file_no=0; (file_no < number_of_images); file_no++) {
         string filename(file_location);
         filename.append(image_files[file_no]);
         
-        //COLOR
+        //read img
         images[file_no] = imread(filename, CV_LOAD_IMAGE_COLOR);
         
         if (images[file_no].empty()) {
@@ -32,14 +30,10 @@ Mat* loadImages(int number_of_images, string image_files[], string file_location
 }
 
 Mat* getPages() {
-    /************* GET PAGES *************/
-    /*************************************/
-    
     /*********** file location ***********/
     string file_location = constant::directory + "Input/pages/";
     const int numberOfPages = 13;
-    //const int numberOfPages = 1;
-    
+
     /*********** test files ***********/
     string image_files[numberOfPages];
     
@@ -58,8 +52,7 @@ Mat* getPages() {
     /*********** load images ***********/
     Mat* myImages = loadImages(numberOfImages, image_files, file_location);
     
-    
-    //CROPP EXPERIMENTAL
+    /*********** crop and resize images ***********/
     Mat* croppedImgs = new Mat[numberOfImages];
     
     for(int i = 0; i < numberOfImages; i++) {
@@ -74,8 +67,7 @@ Mat* getPages() {
 }
 
 Mat* getPhotos() {
-    /************* GET PHOTOS *************/
-    /*************************************/
+    /*********** file location ***********/
     string photo_location = constant::directory + "Input/photos/";
     const int numberOfPhotos = 50;
     
