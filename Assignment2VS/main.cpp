@@ -27,7 +27,7 @@ struct {
 
 // function declarations
 void displayImage(Mat image);
-int* getNeighbours(int baseIndex, vector<Point2f> points);
+int* getNeighbours(int* baseIndex, vector<Point2f> *points);
 bool inVector(int val, vector<int>vec);
 int inSameSide(int val1, int val2,  vector<vector<int>> sides);
 vector<vector<Point>> getBlindLines(vector<vector<int>> corners, vector<vector<int>> sides, vector<Point2f>center);
@@ -102,7 +102,7 @@ int main(int argc, const char * argv[]) {
                 Scalar color = Scalar( 0, 255, 0);
                 
                 int startPoint = ii;
-                int *nbees = getNeighbours(startPoint, center);
+                int *nbees = getNeighbours(&startPoint, &center);
                 
                 double *angles = getAngles(center[startPoint], center[nbees[0]], center[nbees[1]]);
                 
@@ -333,16 +333,16 @@ int inSameSide(int val1, int val2,  vector<vector<int>> sides) {
 
 /************ GET NEIGHBOUR POINTS ************/
 /**********************************************/
-int* getNeighbours(int baseIndex, vector<Point2f> points) {
+int* getNeighbours(int* baseIndex, vector<Point2f> *points) {
     
     int neighbours[2][2] = {
         {INT_MAX, INT_MAX},
         {INT_MAX, INT_MAX}
     };
     
-    for(int i = 0; i < points.size(); i ++) {
-        if(i != baseIndex) {
-            int dist = getSimpleDist(points[baseIndex], points[i]);
+    for(int i = 0; i < points->size(); i ++) {
+        if(i != *baseIndex) {
+            int dist = getSimpleDist((*points)[*baseIndex], (*points)[i]);
             
             if(dist < neighbours[0][0] || dist < neighbours[1][0]) {
                 if(neighbours[0][0] <= neighbours[1][0]) {
