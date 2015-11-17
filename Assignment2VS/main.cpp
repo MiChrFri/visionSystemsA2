@@ -64,7 +64,8 @@ int main(int argc, const char * argv[]) {
         // get sample histogram
         Mat sampleHist = getSampleHist();
         
-        for(int i = 33; i < 34 ; i++) {
+        //24 crashes
+        for(int i = 0; i < 25 ; i++) {
             // use variable name for readability
             Mat rgbImg = photos[i];
             
@@ -74,18 +75,24 @@ int main(int argc, const char * argv[]) {
             // back threshold
             Mat img = thresholdIMG(BP);
             
+            // dilate image
+            Mat dilImg;
+            Mat structuring_element( 1, 2, CV_8U, Scalar(1) );
+            dilate( img, dilImg, structuring_element);
+            
+            #if DEBUG
+            imshow(to_string(rand()), dilImg);
+            #endif
+            
             Mat output;
-            connectedComponents(img, output);
+            connectedComponents(dilImg, output);
             
             //find contours
             vector<vector<Point> > contours;
-            Mat contourOutput = img.clone();
+            Mat contourOutput = dilImg.clone();
             
             findContours( contourOutput, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE );
             
-            ////////
-            
-            RNG rng(12345);
             /// Approximate contours to polygons + get bounding rects and circles
             vector<vector<Point> > contours_poly( contours.size() );
             vector<Rect> boundRect( contours.size() );
@@ -164,6 +171,30 @@ int main(int argc, const char * argv[]) {
             // CALCULATE MISSING CORNERS
             vector<vector<Point>> blindLines = getBlindLines(corners, sides, center);
             
+            bool hasCorners = false;
+            for(int ii = 0; ii < lines.size(); ii++) {
+                for(int iii = 0; iii < lines[ii].size(); iii++) {
+                    if(inVector(lines[ii][iii], corners[0])){
+                        hasCorners = true;
+                    }
+                }
+                
+//                if (!hasCorners) {
+//                    Point a = corner[lines[ii][0]];
+//                   // Point b = lines[ii][3];
+//                    double dist = getDistance(a, b);
+//                    Point c;
+//                
+//                    c.x = b.x + (b.x - a.x) / dist * -(10 * dist);
+//                    c.y = b.y + (b.y - a.y) / dist * -(10 * dist);
+//                
+//                    blindLines.push_back({c, b});
+//                
+//                }
+            }
+        
+        
+            
             vector<double> angles;
             
             for(int ii = 0; ii < blindLines.size(); ii++) {
@@ -199,17 +230,17 @@ int main(int argc, const char * argv[]) {
                 }
             }
             
-            
             sort(cornerPoints.begin(), cornerPoints.end(), pointSorter);
-            
             
             for(int ii = 0; ii < cornerPoints.size(); ii++) {
                 circle(rgbImg, cornerPoints[ii], 5, Scalar(160, 0, 255), 1, 20, 0 );
             }
             
-            imshow("pagePhoto" + to_string(i), photos[i]);
+            
+            // show the orignal photo
+            imshow("pagePhoto" + to_string(i), rgbImg);
             moveWindow("pagePhoto" + to_string(i), 300, 0);
-
+            
             if(cornerPoints.size() < 40) {
                 // log out sides
                 //logSides(sides);
@@ -225,7 +256,9 @@ int main(int argc, const char * argv[]) {
                 Mat* transformedImg = new Mat[1];
                 transformedImg = mapInRect(rgbImg, srcQua);
                 
+                #if DEBUG
                 imshow("asd" + to_string(i), transformedImg[0]);
+                #endif
               
                 
                 //// EXPERIMENTAL TEMPLATE MATCHING
@@ -239,6 +272,7 @@ int main(int argc, const char * argv[]) {
                     }
                 }
                 
+                // result
                 cout << "highest match = " << highestMatch[1] << " has index: " << highestMatch[0] << endl;
                 imshow("match" + to_string(i), pages[highestMatch[0]]);
                 moveWindow("match" + to_string(i), 0, 0);

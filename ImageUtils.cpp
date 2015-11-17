@@ -69,7 +69,7 @@ Mat* getPages() {
 Mat* getPhotos() {
     /*********** file location ***********/
     string photo_location = constant::directory + "Input/photos/";
-    const int numberOfPhotos = 50;
+    const int numberOfPhotos = 25;
     
     /*********** test files ***********/
     string photo_files[numberOfPhotos];
@@ -80,6 +80,8 @@ Mat* getPhotos() {
         
         imgName += i < 9 ? "0":"";
         imgName += to_string(i+1) + ".JPG";
+        
+        cout << imgName << endl;
         
         photo_files[i] = imgName;
     }
