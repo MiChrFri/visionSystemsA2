@@ -15,6 +15,7 @@
 #include "HistogramUtils.hpp"
 #include "GeometricUtils.hpp"
 #include "Debug.hpp"
+#include "ProcessingAlgos.hpp"
 
 /**** Struct for sorting ****/
 struct {
@@ -33,11 +34,6 @@ vector<Point2f> findIntersectionPoints(vector<vector<Point>> lines);
 
 vector<vector<int>> getSides(vector<vector<int>> lines);
 vector<int> getEdges(int corner, vector<vector<int>> sides);
-
-/***** vision algorithms *****/
-Mat thresholdIMG(Mat image);
-Mat adaptiveThresholdImg(Mat image);
-Mat backProjection(Mat* sampleHist, Mat* inputImg);
 
 int matchPossibility(Mat pageImg, Mat matchImg);
 
@@ -65,7 +61,7 @@ int main(int argc, const char * argv[]) {
         Mat sampleHist = getSampleHist();
         
         //24 crashes
-        for(int i = 0; i < 25 ; i++) {
+        for(int i = 21; i < 22 ; i++) {
             // use variable name for readability
             Mat rgbImg = photos[i];
             
@@ -75,41 +71,13 @@ int main(int argc, const char * argv[]) {
             // back threshold
             Mat img = thresholdIMG(BP);
             
-            // dilate image
-            Mat dilImg;
-            Mat structuring_element( 1, 2, CV_8U, Scalar(1) );
-            dilate( img, dilImg, structuring_element);
-            
-            #if DEBUG
-            imshow(to_string(rand()), dilImg);
-            #endif
-            
-            Mat output;
-            connectedComponents(dilImg, output);
-            
-            //find contours
-            vector<vector<Point> > contours;
-            Mat contourOutput = dilImg.clone();
-            
-            findContours( contourOutput, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE );
-            
-            /// Approximate contours to polygons + get bounding rects and circles
-            vector<vector<Point> > contours_poly( contours.size() );
-            vector<Rect> boundRect( contours.size() );
-            vector<Point2f>center( contours.size() );
-            vector<float>radius( contours.size() );
-            
-            //for( int ii = 0; ii < contours.size(); ii++ ){
-            for( int ii = 0; ii < contours.size(); ii++ ){
-                approxPolyDP( Mat(contours[ii]), contours_poly[ii], 3, true );
-                minEnclosingCircle( (Mat)contours_poly[ii], center[ii], radius[ii] );
-            }
+            vector<Point2f> center = getPoints(&img);
             
             vector<vector<int>> lines;
             vector<vector<int>> corners;
-            
-            /// Draw polygonal contour + bonding rects + circles
-            for( int ii = 0; ii < contours.size(); ii++ ) {
+
+            /// loop through points
+            for( int ii = 0; ii < center.size(); ii++ ) {
                 Scalar color = Scalar( 0, 255, 0);
                 
                 int startPoint = ii;
@@ -120,7 +88,7 @@ int main(int argc, const char * argv[]) {
                 //Debug output
                 //cout << "POINTS: " << startPoint << "|" << nbees[0] << "|" << nbees[1] << endl;
                 //cout << "ANGLEEEEs: " << angles[0] << " | " << angles[1] << " | " << angles[2] << " | " << endl;
-                putText(photos[i], to_string(ii), cvPoint(center[ii].x, center[ii].y+13), FONT_HERSHEY_DUPLEX, 0.3, Scalar(0,0,255), 1, CV_AA);
+                //putText(photos[i], to_string(ii), cvPoint(center[ii].x, center[ii].y+13), FONT_HERSHEY_DUPLEX, 0.3, Scalar(0,0,255), 1, CV_AA);
                 
                 int pointProp = identifyPoint(angles);
                 
@@ -171,31 +139,25 @@ int main(int argc, const char * argv[]) {
             // CALCULATE MISSING CORNERS
             vector<vector<Point>> blindLines = getBlindLines(corners, sides, center);
             
-            bool hasCorners = false;
-            for(int ii = 0; ii < lines.size(); ii++) {
-                for(int iii = 0; iii < lines[ii].size(); iii++) {
-                    if(inVector(lines[ii][iii], corners[0])){
-                        hasCorners = true;
-                    }
-                }
-                
-//                if (!hasCorners) {
-//                    Point a = corner[lines[ii][0]];
-//                   // Point b = lines[ii][3];
-//                    double dist = getDistance(a, b);
-//                    Point c;
-//                
-//                    c.x = b.x + (b.x - a.x) / dist * -(10 * dist);
-//                    c.y = b.y + (b.y - a.y) / dist * -(10 * dist);
-//                
-//                    blindLines.push_back({c, b});
-//                
-//                }
-            }
-        
-        
             
-            vector<double> angles;
+            // ADD lines for side lines
+            for(int ii = 0; ii < lines.size(); ii++) {
+                Point a = center[lines[ii][1]];
+                Point b = center[lines[ii][2]];
+
+                double dist = getDistance(a, b);
+                Point d1;
+                Point d2;
+                
+                d1.x = b.x + (b.x - a.x) / dist * -(10 * dist);
+                d1.y = b.y + (b.y - a.y) / dist * -(10 * dist);
+                
+                d2.x = b.x + (b.x - a.x) / dist * +(10 * dist);
+                d2.y = b.y + (b.y - a.y) / dist * +(10 * dist);
+                
+                blindLines.push_back({d1, d2});
+            }
+            
             
             for(int ii = 0; ii < blindLines.size(); ii++) {
                 line(rgbImg, blindLines[ii][0], blindLines[ii][1], Scalar(0,0,200), 1, 20, 0 );
@@ -222,7 +184,6 @@ int main(int argc, const char * argv[]) {
                                 equal = true;
                             }
                         }
-                        
                         if(!equal) {
                             cornerPoints.push_back(intersections[ii]);
                         }
@@ -230,6 +191,23 @@ int main(int argc, const char * argv[]) {
                 }
             }
             
+            for(int ii = 0; ii < cornerPoints.size(); ii++) {
+                
+                for(int iii = 0; iii < cornerPoints.size(); iii++) {
+                    
+                                    cout << "---> " << cornerPoints[ii] << " COMPARE WITH: " << cornerPoints[iii] << endl;
+                    
+                    if(getDistance(cornerPoints[ii], cornerPoints[iii]) < 5 && ii != iii) {
+                        int averageX = 0.5*(cornerPoints[ii].x + cornerPoints[iii].x);
+                        int averageY = 0.5*(cornerPoints[ii].y + cornerPoints[iii].y);
+                        
+                        cornerPoints[ii] = Point2f(averageX, averageY);
+                        cornerPoints.erase(cornerPoints.begin()+iii);
+                        iii = 0;
+                    }
+                }
+            }
+
             sort(cornerPoints.begin(), cornerPoints.end(), pointSorter);
             
             for(int ii = 0; ii < cornerPoints.size(); ii++) {
@@ -238,10 +216,20 @@ int main(int argc, const char * argv[]) {
             
             
             // show the orignal photo
+            
+            
             imshow("pagePhoto" + to_string(i), rgbImg);
             moveWindow("pagePhoto" + to_string(i), 300, 0);
             
-            if(cornerPoints.size() < 40) {
+            
+            // LAST ATTEMPT TO GET POINTS EXPERIMENTAL
+            if(cornerPoints.size() < 4) {
+                // try to find line via A4 aspect ratio
+            }
+            ////////////////////
+                
+            
+            if(cornerPoints.size() >= 4) {
                 // log out sides
                 //logSides(sides);
                 
@@ -274,8 +262,11 @@ int main(int argc, const char * argv[]) {
                 
                 // result
                 cout << "highest match = " << highestMatch[1] << " has index: " << highestMatch[0] << endl;
+               
+                
                 imshow("match" + to_string(i), pages[highestMatch[0]]);
                 moveWindow("match" + to_string(i), 0, 0);
+                
             }
         }
     }
@@ -337,7 +328,7 @@ int matchPossibility(Mat pageImg, Mat matchImg) {
     Mat dos = getChamferImg(matchImg)[0];
     
     Mat unoR;
-    Size size(uno.cols/5, uno.rows/5);
+    Size size(200, 297);
     resize(uno, unoR, size);
     
     Mat dosR;
@@ -385,14 +376,16 @@ int* getNeighbours(int baseIndex, vector<Point2f> points) {
         if(i != baseIndex) {
             int dist = getSimpleDist(points[baseIndex], points[i]);
             
-            if(dist < neighbours[0][0] || dist < neighbours[1][0]) {
-                if(neighbours[0][0] <= neighbours[1][0]) {
-                    neighbours[1][0] = dist;
-                    neighbours[1][1] = i;
-                }
-                else {
-                    neighbours[0][0] = dist;
-                    neighbours[0][1] = i;
+            if(dist > 50) {
+                if(dist < neighbours[0][0] || dist < neighbours[1][0]) {
+                    if(neighbours[0][0] <= neighbours[1][0]) {
+                        neighbours[1][0] = dist;
+                        neighbours[1][1] = i;
+                    }
+                    else {
+                        neighbours[0][0] = dist;
+                        neighbours[0][1] = i;
+                    }
                 }
             }
         }
@@ -425,42 +418,6 @@ int identifyPoint(double* angles) {
     }
 }
 
-/**************** ALGORITHMS ****************/
-/********************************************/
-
-/**** BACK PROJECTION ****/
-Mat backProjection(Mat* sampleHist, Mat* image) {
-    // set the channel range to the full 8 Bit
-    float channelRange[] = {0.0, 255.0};
-    
-    // get the number of channel for this image
-    int noOfChannels = image->channels();
-    
-    // get the channels of the image and set the ranges for each one
-    const float* channelRanges[noOfChannels];
-    int channels[noOfChannels];
-    for (int i = 0; i < image->channels(); i++) {
-        channels[i] = i;
-        channelRanges[i] = channelRange;
-    }
-    
-    // calculate the backprojection and return the result image
-    Mat result;
-    calcBackProject(image, 1, channels, *sampleHist, result, channelRanges, 255.0);
-    
-    return result;
-}
-
-/**** THRESHOLD ****/
-Mat thresholdIMG(Mat image) {
-    Mat threshImage;
-    double maxValue = 255;
-    
-    //adaptiveThreshold(image, threshImage, maxValue, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 11, 2);
-    threshold(image, threshImage, 200, maxValue, THRESH_BINARY);
-    
-    return threshImage;
-}
 
 vector<vector<Point>> getBlindLines(vector<vector<int>> corners, vector<vector<int>> sides, vector<Point2f>center) {
     vector<vector<Point>> blindLines;

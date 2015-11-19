@@ -12,6 +12,7 @@
 		4C4DBE761BEF7A5D0058C5DF /* HistogramUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4C4DBE741BEF7A5D0058C5DF /* HistogramUtils.cpp */; };
 		4C911F461BED09E2004044DC /* ImageUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4C911F441BED09E2004044DC /* ImageUtils.cpp */; };
 		4C911F491BED09EF004044DC /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4C911F471BED09EF004044DC /* main.cpp */; };
+		4CD4D8001BFCBDEA0097F387 /* ProcessingAlgos.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4CD4D7FE1BFCBDEA0097F387 /* ProcessingAlgos.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -39,6 +40,8 @@
 		4C911F471BED09EF004044DC /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = main.cpp; path = Assignment2VS/main.cpp; sourceTree = SOURCE_ROOT; };
 		4C911F481BED09EF004044DC /* Utilities.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Utilities.h; path = Assignment2VS/Utilities.h; sourceTree = SOURCE_ROOT; };
 		4C9FB2B61BF66EC900C260F2 /* Constants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Constants.h; sourceTree = SOURCE_ROOT; };
+		4CD4D7FE1BFCBDEA0097F387 /* ProcessingAlgos.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ProcessingAlgos.cpp; sourceTree = SOURCE_ROOT; };
+		4CD4D7FF1BFCBDEA0097F387 /* ProcessingAlgos.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ProcessingAlgos.hpp; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -61,6 +64,8 @@
 				4C911F451BED09E2004044DC /* ImageUtils.hpp */,
 				4C45702C1BF3ABF0004ABB66 /* GeometricUtils.cpp */,
 				4C45702D1BF3ABF0004ABB66 /* GeometricUtils.hpp */,
+				4CD4D7FE1BFCBDEA0097F387 /* ProcessingAlgos.cpp */,
+				4CD4D7FF1BFCBDEA0097F387 /* ProcessingAlgos.hpp */,
 				4C45702F1BF54014004ABB66 /* Debug.cpp */,
 				4C4570301BF54014004ABB66 /* Debug.hpp */,
 			);
@@ -154,6 +159,7 @@
 				4C4DBE761BEF7A5D0058C5DF /* HistogramUtils.cpp in Sources */,
 				4C4570311BF54014004ABB66 /* Debug.cpp in Sources */,
 				4C911F461BED09E2004044DC /* ImageUtils.cpp in Sources */,
+				4CD4D8001BFCBDEA0097F387 /* ProcessingAlgos.cpp in Sources */,
 				4C911F491BED09EF004044DC /* main.cpp in Sources */,
 				4C45702E1BF3ABF0004ABB66 /* GeometricUtils.cpp in Sources */,
 			);

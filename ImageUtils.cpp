@@ -10,6 +10,12 @@
 #include "ImageUtils.hpp"
 #include <opencv2/imgproc.hpp>
 #include "Constants.h"
+#include "HistogramUtils.hpp"
+#include "ProcessingAlgos.hpp"
+
+/*** function declarations ***/
+Rect getContentRect(Mat* img);
+
 
 // IMAGELOADER
 Mat* loadImages(int number_of_images, string image_files[], string file_location) {
@@ -56,11 +62,10 @@ Mat* getPages() {
     Mat* croppedImgs = new Mat[numberOfImages];
     
     for(int i = 0; i < numberOfImages; i++) {
-        Rect myROI(10, 10, myImages[i].cols - 20, myImages[i].rows - 20);
+        Rect documentRect = getContentRect(&myImages[i]);
         
-        Size size(300,448);
-        Mat resizedImage;
-        resize(myImages[i](myROI),croppedImgs[i],size);
+        Size size(200, 270);
+        resize(myImages[i](documentRect),croppedImgs[i],size);
     }
     
     return croppedImgs;
@@ -81,8 +86,6 @@ Mat* getPhotos() {
         imgName += i < 9 ? "0":"";
         imgName += to_string(i+1) + ".JPG";
         
-        cout << imgName << endl;
-        
         photo_files[i] = imgName;
     }
     
@@ -93,7 +96,7 @@ Mat* getPhotos() {
     Mat* photos = loadImages(numberOfPictures, photo_files, photo_location);
     
     Mat* resizedImage = new Mat[numberOfPictures];
-    
+
     for(int i = 0; i < numberOfPhotos; i++) {
         Size size(photos[i].cols/2, photos[i].rows/2);
         
@@ -126,4 +129,65 @@ Mat* getChamferImg(Mat img) {
     chmfrImg[0] = chamfImg;
     
     return chmfrImg;
+}
+
+Rect getContentRect(Mat* img) {
+    vector<Point2f> cornerPoints;
+    double area = 50.0;
+    Size size(area, area);
+    
+    Mat sampleHist = getSampleHist();
+    
+    // back projection
+    Mat BP = backProjection(&sampleHist, img);
+    
+    // threshold image
+    Mat threshImage;
+    double maxValue = 255;
+    threshold(BP, threshImage, 50, maxValue, THRESH_BINARY);
+    
+    // close image
+    Mat closed_image;
+    
+    Mat three_by_three_element( 3, 3, CV_8U, Scalar(1) );
+    morphologyEx( threshImage, closed_image, MORPH_OPEN, three_by_three_element);
+    
+    double imgWidth = closed_image.cols;
+    double imgHeight = closed_image.rows;
+    
+    Rect cornerRects[] = {
+        Rect(0               , 0             , area, area),
+        Rect(0               , imgWidth-area , area, area),
+        Rect(imgHeight-area  , 0             , area, area),
+        Rect(imgHeight-area  , imgWidth-area , area, area)
+    };
+
+    for(int i = 0; i < 4; i++) {
+        Rect rect = cornerRects[0];
+        
+        Mat part;
+        resize(closed_image(rect), part, size);
+        
+        Point2f returnedPoint = getPoints(&part)[0];
+        cornerPoints.push_back(returnedPoint);
+    }
+    
+    //apply positions to the whole image
+    int pLUx = round(cornerPoints[0].x);
+    int pLUy = round(cornerPoints[0].y);
+    
+    int pRUx = imgWidth - round(cornerPoints[1].x);
+    //int pRUy = round(cornerPoints[1].y);
+    
+    //int pLDx = round(cornerPoints[2].x);
+    int pLDy = imgHeight- round(cornerPoints[2].y);
+    
+    //int pRDx = imgWidth - round(cornerPoints[3].x);
+    //int pRDy = imgHeight - round(cornerPoints[3].y);
+    
+    
+    double rectWidth = pRUx - pLUx;
+    double rectHeight = pLDy - pLUy;
+    
+    return Rect(pLUx, pLUy, rectWidth, rectHeight);
 }
