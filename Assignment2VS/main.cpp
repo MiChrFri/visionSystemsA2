@@ -318,12 +318,31 @@ int matchPossibility(Mat pageImg, Mat matchImg) {
     Mat dosR;
     resize(dos, dosR, constant::size);
     
+    // find the ammount of similar pixels
     Mat result;
     compare(unoR , dosR, result , CMP_EQ );
     int similarPixels  = countNonZero(result);
     
+    //// template matching
+    int matchMethod = CV_TM_CCORR_NORMED;
+    Mat matched;
+    
+    matchTemplate( unoR, dosR, matched, matchMethod  );
+    normalize( result, result, 0, 1, NORM_MINMAX, -1, Mat() );
+    
+    // Localizing the best match with minMaxLoc
+    double minVal; double maxVal; Point minLoc; Point maxLoc;
+    Point matchLoc;
+    
+    minMaxLoc( matched, &minVal, &maxVal, &minLoc, &maxLoc, Mat() );
+    
+    // For SQDIFF_NORMED, the best matches are lower values
+    matchLoc = minLoc;
+    
+    // get
     double dist = norm(unoR,dosR,NORM_L2);
-    return abs(similarPixels/dist);
+
+    return abs(similarPixels/dist)+(minVal*100);
 }
 
 bool inVector(int val, vector<int>vec) {
