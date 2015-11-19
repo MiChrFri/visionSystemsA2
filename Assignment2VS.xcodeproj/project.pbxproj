@@ -38,7 +38,6 @@
 		4C911F441BED09E2004044DC /* ImageUtils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ImageUtils.cpp; sourceTree = SOURCE_ROOT; };
 		4C911F451BED09E2004044DC /* ImageUtils.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ImageUtils.hpp; sourceTree = SOURCE_ROOT; };
 		4C911F471BED09EF004044DC /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = main.cpp; path = Assignment2VS/main.cpp; sourceTree = SOURCE_ROOT; };
-		4C911F481BED09EF004044DC /* Utilities.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Utilities.h; path = Assignment2VS/Utilities.h; sourceTree = SOURCE_ROOT; };
 		4C9FB2B61BF66EC900C260F2 /* Constants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Constants.h; sourceTree = SOURCE_ROOT; };
 		4CD4D7FE1BFCBDEA0097F387 /* ProcessingAlgos.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ProcessingAlgos.cpp; sourceTree = SOURCE_ROOT; };
 		4CD4D7FF1BFCBDEA0097F387 /* ProcessingAlgos.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ProcessingAlgos.hpp; sourceTree = SOURCE_ROOT; };
@@ -94,7 +93,6 @@
 				4C2F681E1BC998A600D24D23 /* utils */,
 				4C911F471BED09EF004044DC /* main.cpp */,
 				4C9FB2B61BF66EC900C260F2 /* Constants.h */,
-				4C911F481BED09EF004044DC /* Utilities.h */,
 			);
 			name = Assignment2VS;
 			path = Assignment1VS;

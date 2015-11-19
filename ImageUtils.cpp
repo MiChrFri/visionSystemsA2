@@ -13,11 +13,13 @@
 #include "HistogramUtils.hpp"
 #include "ProcessingAlgos.hpp"
 
+using namespace std;
+using namespace cv;
+
 /*** function declarations ***/
 Rect getContentRect(Mat* img);
 
-
-// IMAGELOADER
+/* load images from filesysyem */
 Mat* loadImages(int number_of_images, string image_files[], string file_location) {
     Mat* images = new Mat[number_of_images];
     
@@ -35,15 +37,16 @@ Mat* loadImages(int number_of_images, string image_files[], string file_location
     return images;
 }
 
+/* load the page images */
 Mat* getPages() {
-    /*********** file location ***********/
+    // file location
     string file_location = constant::directory + "Input/pages/";
     const int numberOfPages = 13;
 
-    /*********** test files ***********/
+    // test files
     string image_files[numberOfPages];
     
-    /******** create imageNames *******/
+    // create imageNames
     for(int i = 0; i < numberOfPages; i++) {
         string imgName = "Page";
         
@@ -55,15 +58,14 @@ Mat* getPages() {
     
     int numberOfImages = sizeof(image_files)/sizeof(image_files[0]);
     
-    /*********** load images ***********/
+    // load images
     Mat* myImages = loadImages(numberOfImages, image_files, file_location);
     
-    /*********** crop and resize images ***********/
+    // crop and resize images
     Mat* croppedImgs = new Mat[numberOfImages];
     
     for(int i = 0; i < numberOfImages; i++) {
         Rect documentRect = getContentRect(&myImages[i]);
-        
         resize(myImages[i](documentRect),croppedImgs[i],constant::size);
     }
     
@@ -71,14 +73,14 @@ Mat* getPages() {
 }
 
 Mat* getPhotos() {
-    /*********** file location ***********/
+    // file location
     string photo_location = constant::directory + "Input/photos/";
     const int numberOfPhotos = 25;
     
-    /*********** test files ***********/
+    // test files
     string photo_files[numberOfPhotos];
     
-    /******** create imageNames *******/
+    // create imageNames
     for(int i = 0; i < numberOfPhotos; i++) {
         string imgName = "BookView";
         
@@ -87,13 +89,10 @@ Mat* getPhotos() {
         
         photo_files[i] = imgName;
     }
-    
     int numberOfPictures = sizeof(photo_files)/sizeof(photo_files[0]);
-    cout << numberOfPictures << " photos loaded" << endl;
     
-    /*********** load images ***********/
+    //load images
     Mat* photos = loadImages(numberOfPictures, photo_files, photo_location);
-    
     Mat* resizedImage = new Mat[numberOfPictures];
 
     for(int i = 0; i < numberOfPhotos; i++) {
@@ -105,8 +104,8 @@ Mat* getPhotos() {
     return resizedImage;
 }
 
+/* returns a chamfered image */
 Mat* getChamferImg(Mat img) {
-    
     // convert to grayscale
     Mat grayImg;
     cvtColor(img,grayImg,CV_RGB2GRAY);
@@ -120,14 +119,10 @@ Mat* getChamferImg(Mat img) {
     adaptiveThreshold(edgeImg, threshImage, 255, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY_INV, 3, 2);
     
     // chamfer img
-    Mat chamfImg;
-    distanceTransform(threshImage, chamfImg, CV_DIST_L2, 3);
+    Mat* chamfImg = new Mat;
+    distanceTransform(threshImage, *chamfImg, CV_DIST_L2, 3);
     
-    
-    Mat* chmfrImg = new Mat;
-    chmfrImg[0] = chamfImg;
-    
-    return chmfrImg;
+    return chamfImg;
 }
 
 Rect getContentRect(Mat* img) {
@@ -138,22 +133,21 @@ Rect getContentRect(Mat* img) {
     Mat sampleHist = getSampleHist();
     
     // back projection
-    Mat BP = backProjection(&sampleHist, img);
+    Mat BP = *backProjection(&sampleHist, img);
     
     // threshold image
-    Mat threshImage;
-    double maxValue = 255;
-    threshold(BP, threshImage, 50, maxValue, THRESH_BINARY);
+    Mat* threshImage = new Mat;
+    threshImage = thresholdIMG(BP, 50);
     
     // close image
     Mat closed_image;
-    
     Mat three_by_three_element( 3, 3, CV_8U, Scalar(1) );
-    morphologyEx( threshImage, closed_image, MORPH_OPEN, three_by_three_element);
+    morphologyEx(*threshImage, closed_image, MORPH_OPEN, three_by_three_element);
     
     double imgWidth = closed_image.cols;
     double imgHeight = closed_image.rows;
     
+    // devide the image in four rectangles to find oly the needed points
     Rect cornerRects[] = {
         Rect(0               , 0             , area, area),
         Rect(0               , imgWidth-area , area, area),
@@ -174,16 +168,8 @@ Rect getContentRect(Mat* img) {
     //apply positions to the whole image
     int pLUx = round(cornerPoints[0].x);
     int pLUy = round(cornerPoints[0].y);
-    
     int pRUx = imgWidth - round(cornerPoints[1].x);
-    //int pRUy = round(cornerPoints[1].y);
-    
-    //int pLDx = round(cornerPoints[2].x);
     int pLDy = imgHeight- round(cornerPoints[2].y);
-    
-    //int pRDx = imgWidth - round(cornerPoints[3].x);
-    //int pRDy = imgHeight - round(cornerPoints[3].y);
-    
     
     double rectWidth = pRUx - pLUx;
     double rectHeight = pLDy - pLUy;

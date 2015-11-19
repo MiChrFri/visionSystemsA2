@@ -12,8 +12,8 @@
 #include <stdio.h>
 #include <opencv2/opencv.hpp>
 
-cv::Mat backProjection(cv::Mat* sampleHist, cv::Mat* image);
-cv::Mat thresholdIMG(cv::Mat image);
+cv::Mat* backProjection(cv::Mat* sampleHist, cv::Mat* image);
+cv::Mat* thresholdIMG(cv::Mat image, int value);
 std::vector<cv::Point2f> getPoints(cv::Mat* img);
 
 #endif /* ProcessingAlgos_hpp */

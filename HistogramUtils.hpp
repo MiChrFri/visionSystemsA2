@@ -12,7 +12,6 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgproc.hpp>
 
-void showHistogram(cv::Mat& img);
 cv::MatND getHistogram(cv::Mat image);
 cv::MatND getSampleHist();
 

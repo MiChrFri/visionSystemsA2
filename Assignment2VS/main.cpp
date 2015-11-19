@@ -18,6 +18,9 @@
 #include "ProcessingAlgos.hpp"
 #include "Constants.h"
 
+using namespace std;
+using namespace cv;
+
 /**** Struct for sorting ****/
 struct {
     bool operator() (Point pt1, Point pt2) {
@@ -26,20 +29,14 @@ struct {
 } pointSorter;
 
 /**** function declarations ****/
-void displayImage(Mat image);
 int* getNeighbours(int baseIndex, vector<Point2f> points);
 bool inVector(int val, vector<int>vec);
-int inSameSide(int val1, int val2,  vector<vector<int>> sides);
 vector<vector<Point>> getBlindLines(vector<vector<int>> corners, vector<vector<int>> sides, vector<Point2f>center);
 vector<Point2f> findIntersectionPoints(vector<vector<Point>> lines);
-
 vector<vector<int>> getSides(vector<vector<int>> lines);
 vector<int> getEdges(int corner, vector<vector<int>> sides);
-
 int matchPossibility(Mat pageImg, Mat matchImg);
-
 int identifyPoint(double* angles);
-double getAngle(Point base, Point neighbour);
 
 /**** ENUMS ****/
 enum pointProp {
@@ -49,7 +46,9 @@ enum pointProp {
 /**************** main ******************/
 /****************************************/
 int main(int argc, const char * argv[]) {
+    #if DEBUG
     logVersionNumber();
+    #endif
     
     Mat* pages  = getPages();
     Mat* photos = getPhotos();
@@ -67,45 +66,44 @@ int main(int argc, const char * argv[]) {
             Mat rgbImg = photos[i];
             
             // back projection
-            Mat BP = backProjection(&sampleHist, &rgbImg);
+            Mat* BP = new Mat;
+            BP = backProjection(&sampleHist, &rgbImg);
             
             // back threshold
-            Mat img = thresholdIMG(BP);
+            Mat* img = new Mat;
+            img = thresholdIMG(*BP, 200);
             
-            vector<Point2f> center = getPoints(&img);
-            
+            vector<Point2f> center = getPoints(img);
             vector<vector<int>> lines;
             vector<vector<int>> corners;
 
-            /// loop through points
+            // loop through points
             for( int ii = 0; ii < center.size(); ii++ ) {
-                Scalar color = Scalar( 0, 255, 0);
-                
                 int startPoint = ii;
-                int *nbees = getNeighbours(startPoint, center);
+                int *nbees = getNeighbours(ii, center);
                 
                 double *angles = getAngles(center[startPoint], center[nbees[0]], center[nbees[1]]);
                 
-                //Debug output
-                //cout << "POINTS: " << startPoint << "|" << nbees[0] << "|" << nbees[1] << endl;
-                //cout << "ANGLEEEEs: " << angles[0] << " | " << angles[1] << " | " << angles[2] << " | " << endl;
+                #if DEBUG
+                cout << "POINTS: " << startPoint << "|" << nbees[0] << "|" << nbees[1] << endl;
+                cout << "ANGLEs: " << angles[0] << " | " << angles[1] << " | " << angles[2] << " | " << endl;
                 putText(photos[i], to_string(ii), cvPoint(center[ii].x, center[ii].y+13), FONT_HERSHEY_DUPLEX, 0.3, Scalar(0,0,255), 1, CV_AA);
+                #endif
                 
                 int pointProp = identifyPoint(angles);
                 
+                // categorizes the points
                 switch(pointProp){
                     case CORNER:
                         if(corners.size() > 0) {
                             for(int iii = 0; iii < corners.size(); iii++) {
                                 if(!closeToCorner(center[startPoint], center[corners[iii][0]])) {
                                     corners.push_back({startPoint, nbees[0], nbees[1]});
-                                    color = Scalar( 0, 0, 0);
                                 }
                             }
                         }
                         else {
                             corners.push_back({startPoint, nbees[0], nbees[1]});
-                            color = Scalar( 0, 0, 0);
                         }
                         
                         break;
@@ -113,11 +111,8 @@ int main(int argc, const char * argv[]) {
                         lines.push_back({startPoint, nbees[0], nbees[1]});
                         break;
                     case UNKNOWN:
-                        color = Scalar( 0, 0, 255);
                         break;
                 }
-                
-                //circle(rgbImg, center[ii], 5, color, 1, 20, 0 );
             }
             
             // GET THE POINTS OF THE 4 SIDES
@@ -140,10 +135,8 @@ int main(int argc, const char * argv[]) {
             // CALCULATE MISSING CORNERS
             vector<vector<Point>> blindLines = getBlindLines(corners, sides, center);
             
-            
-            // ADD lines for side lines
+            // ADD LINES FOR SIDE LINES
             for(int ii = 0; ii < lines.size(); ii++) {
-                
                 Point a = center[lines[ii][1]];
                 Point b = center[lines[ii][2]];
 
@@ -153,25 +146,28 @@ int main(int argc, const char * argv[]) {
                 
                 d1.x = b.x + (b.x - a.x) / dist * -(10 * dist);
                 d1.y = b.y + (b.y - a.y) / dist * -(10 * dist);
-                
+
                 d2.x = b.x + (b.x - a.x) / dist * +(10 * dist);
                 d2.y = b.y + (b.y - a.y) / dist * +(10 * dist);
                 
                 blindLines.push_back({d1, d2});
             }
             
-            
+            #if DEBUG
             for(int ii = 0; ii < blindLines.size(); ii++) {
                 line(rgbImg, blindLines[ii][0], blindLines[ii][1], Scalar(0,0,200), 1, 20, 0 );
             }
-        
+            #endif
+            
             if(corners.size() <= 4) {
+                // find intersection in out lines
                 vector<Point2f> intersections = findIntersectionPoints(blindLines);
         
                 for(int ii = 0; ii < intersections.size(); ii++) {
                     bool valid = true;
                     
                     for(int iii = 0; iii < corners.size(); iii++) {
+                        // don't add them when there is another intersection point already close to the location
                         if(closeToCorner(intersections[ii], center[corners[iii][0]])) {
                             valid = false;
                         }
@@ -179,9 +175,8 @@ int main(int argc, const char * argv[]) {
                     
                     if(valid) {
                         bool equal = false;
-                        
                         for(int iii = 0; iii < cornerPoints.size(); iii++) {
-                            
+                            // don't add the intersection when we alredy have it
                             if(intersections[ii] == cornerPoints[iii]) {
                                 equal = true;
                             }
@@ -193,7 +188,7 @@ int main(int argc, const char * argv[]) {
                 }
             }
             
-            // Merge corner which are very close to another
+            // merge corner which are very close to another
             for(int ii = 0; ii < cornerPoints.size(); ii++) {
                 for(int iii = 0; iii < cornerPoints.size(); iii++) {
                     if(getDistance(cornerPoints[ii], cornerPoints[iii]) < 10 && ii != iii) {
@@ -207,36 +202,35 @@ int main(int argc, const char * argv[]) {
                 }
             }
 
-            // Sort the cornerpoints
+            // sort the cornerpoints
             sort(cornerPoints.begin(), cornerPoints.end(), pointSorter);
             
             #if DEBUG
             for(int ii = 0; ii < cornerPoints.size(); ii++) {
                 circle(rgbImg, cornerPoints[ii], 5, Scalar(160, 0, 255), 1, 20, 0 );
+                imshow("pagePhoto" + to_string(i), rgbImg);
+                moveWindow("pagePhoto" + to_string(i), 300, 0);
             }
             #endif
             
-            // show the orignal photo
-            imshow("pagePhoto" + to_string(i), rgbImg);
-            moveWindow("pagePhoto" + to_string(i), 300, 0);
-            
             if(cornerPoints.size() >= 4) {
-                ////// TRANSFORMATION
+                /***** GEOMETRIC TRANSFORMATION ******/
                 // write corner points to array
                 Point2f srcQua[4];
                 srcQua[0] = cornerPoints[0];
                 srcQua[1] = cornerPoints[1];
                 srcQua[2] = cornerPoints[2];
                 srcQua[3] = cornerPoints[3];
-                
+
+                // map the srcPoints in a defined rectangle
                 Mat* transformedImg = new Mat[1];
                 transformedImg = mapInRect(rgbImg, srcQua);
                 
                 #if DEBUG
-                imshow("asd" + to_string(i), transformedImg[0]);
+                imshow("trasnformed image_" + to_string(i), transformedImg[0]);
                 #endif
               
-                //// EXPERIMENTAL TEMPLATE MATCHING
+                // calculates a matching possibility between two images
                 int highestMatch[2] = {0, 0};
                 
                 for(int i = 0; i < 13; i++) {
@@ -247,9 +241,7 @@ int main(int argc, const char * argv[]) {
                     }
                 }
                 
-                // result
-                cout << "highest match = " << highestMatch[1] << " has index: " << highestMatch[0] << endl;
-               
+                // shows the matched image
                 imshow("match" + to_string(i), pages[highestMatch[0]]);
                 moveWindow("match" + to_string(i), 0, 0);
             }
@@ -352,18 +344,6 @@ bool inVector(int val, vector<int>vec) {
     else {
         return false;
     }
-}
-
-int inSameSide(int val1, int val2,  vector<vector<int>> sides) {
-    for(int i = 0; i < sides.size(); i++) {
-        if (find(sides[i].begin(), sides[i].end(),val1) != sides[i].end()) {
-            if (find(sides[i].begin(), sides[i].end(),val2) != sides[i].end()) {
-                return i;
-            }
-        }
-    }
-    
-    return -1;
 }
 
 /************ GET NEIGHBOUR POINTS ************/
