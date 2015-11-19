@@ -16,6 +16,7 @@
 #include "GeometricUtils.hpp"
 #include "Debug.hpp"
 #include "ProcessingAlgos.hpp"
+#include "Constants.h"
 
 /**** Struct for sorting ****/
 struct {
@@ -60,8 +61,8 @@ int main(int argc, const char * argv[]) {
         // get sample histogram
         Mat sampleHist = getSampleHist();
         
-        //24 crashes
-        for(int i = 21; i < 22 ; i++) {
+        // loop through the 25 photos
+        for(int i = 0; i < 25 ; i++) {
             // use variable name for readability
             Mat rgbImg = photos[i];
             
@@ -88,7 +89,7 @@ int main(int argc, const char * argv[]) {
                 //Debug output
                 //cout << "POINTS: " << startPoint << "|" << nbees[0] << "|" << nbees[1] << endl;
                 //cout << "ANGLEEEEs: " << angles[0] << " | " << angles[1] << " | " << angles[2] << " | " << endl;
-                //putText(photos[i], to_string(ii), cvPoint(center[ii].x, center[ii].y+13), FONT_HERSHEY_DUPLEX, 0.3, Scalar(0,0,255), 1, CV_AA);
+                putText(photos[i], to_string(ii), cvPoint(center[ii].x, center[ii].y+13), FONT_HERSHEY_DUPLEX, 0.3, Scalar(0,0,255), 1, CV_AA);
                 
                 int pointProp = identifyPoint(angles);
                 
@@ -142,6 +143,7 @@ int main(int argc, const char * argv[]) {
             
             // ADD lines for side lines
             for(int ii = 0; ii < lines.size(); ii++) {
+                
                 Point a = center[lines[ii][1]];
                 Point b = center[lines[ii][2]];
 
@@ -191,13 +193,10 @@ int main(int argc, const char * argv[]) {
                 }
             }
             
+            // Merge corner which are very close to another
             for(int ii = 0; ii < cornerPoints.size(); ii++) {
-                
                 for(int iii = 0; iii < cornerPoints.size(); iii++) {
-                    
-                                    cout << "---> " << cornerPoints[ii] << " COMPARE WITH: " << cornerPoints[iii] << endl;
-                    
-                    if(getDistance(cornerPoints[ii], cornerPoints[iii]) < 5 && ii != iii) {
+                    if(getDistance(cornerPoints[ii], cornerPoints[iii]) < 10 && ii != iii) {
                         int averageX = 0.5*(cornerPoints[ii].x + cornerPoints[iii].x);
                         int averageY = 0.5*(cornerPoints[ii].y + cornerPoints[iii].y);
                         
@@ -208,31 +207,20 @@ int main(int argc, const char * argv[]) {
                 }
             }
 
+            // Sort the cornerpoints
             sort(cornerPoints.begin(), cornerPoints.end(), pointSorter);
             
+            #if DEBUG
             for(int ii = 0; ii < cornerPoints.size(); ii++) {
                 circle(rgbImg, cornerPoints[ii], 5, Scalar(160, 0, 255), 1, 20, 0 );
             }
-            
+            #endif
             
             // show the orignal photo
-            
-            
             imshow("pagePhoto" + to_string(i), rgbImg);
             moveWindow("pagePhoto" + to_string(i), 300, 0);
             
-            
-            // LAST ATTEMPT TO GET POINTS EXPERIMENTAL
-            if(cornerPoints.size() < 4) {
-                // try to find line via A4 aspect ratio
-            }
-            ////////////////////
-                
-            
             if(cornerPoints.size() >= 4) {
-                // log out sides
-                //logSides(sides);
-                
                 ////// TRANSFORMATION
                 // write corner points to array
                 Point2f srcQua[4];
@@ -248,7 +236,6 @@ int main(int argc, const char * argv[]) {
                 imshow("asd" + to_string(i), transformedImg[0]);
                 #endif
               
-                
                 //// EXPERIMENTAL TEMPLATE MATCHING
                 int highestMatch[2] = {0, 0};
                 
@@ -263,10 +250,8 @@ int main(int argc, const char * argv[]) {
                 // result
                 cout << "highest match = " << highestMatch[1] << " has index: " << highestMatch[0] << endl;
                
-                
                 imshow("match" + to_string(i), pages[highestMatch[0]]);
                 moveWindow("match" + to_string(i), 0, 0);
-                
             }
         }
     }
@@ -328,11 +313,10 @@ int matchPossibility(Mat pageImg, Mat matchImg) {
     Mat dos = getChamferImg(matchImg)[0];
     
     Mat unoR;
-    Size size(200, 297);
-    resize(uno, unoR, size);
+    resize(uno, unoR, constant::size);
     
     Mat dosR;
-    resize(dos, dosR, size);
+    resize(dos, dosR, constant::size);
     
     Mat result;
     compare(unoR , dosR, result , CMP_EQ );
@@ -376,7 +360,7 @@ int* getNeighbours(int baseIndex, vector<Point2f> points) {
         if(i != baseIndex) {
             int dist = getSimpleDist(points[baseIndex], points[i]);
             
-            if(dist > 50) {
+            if(dist > 40) {
                 if(dist < neighbours[0][0] || dist < neighbours[1][0]) {
                     if(neighbours[0][0] <= neighbours[1][0]) {
                         neighbours[1][0] = dist;

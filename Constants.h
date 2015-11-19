@@ -12,6 +12,7 @@
 // constants
 namespace constant {
     const std::string directory = "/Users/michael/Desktop/Trinity/VisionSystems/Assignment2/";
+    const cv::Size size(200, 297);
 }
 
 #endif /* Constants_h */

@@ -64,8 +64,7 @@ Mat* getPages() {
     for(int i = 0; i < numberOfImages; i++) {
         Rect documentRect = getContentRect(&myImages[i]);
         
-        Size size(200, 270);
-        resize(myImages[i](documentRect),croppedImgs[i],size);
+        resize(myImages[i](documentRect),croppedImgs[i],constant::size);
     }
     
     return croppedImgs;
