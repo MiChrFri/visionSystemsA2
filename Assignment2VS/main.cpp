@@ -164,16 +164,16 @@ int main(int argc, const char * argv[]) {
                 vector<Point2f> intersections = findIntersectionPoints(blindLines);
         
                 for(int ii = 0; ii < intersections.size(); ii++) {
-                    bool equal = false;
-                    for(int iii = 0; iii < cornerPoints.size(); iii++) {
-                        // don't add the intersection when we alredy have it
-                        if(intersections[ii] == cornerPoints[iii]) {
-                            equal = true;
+                        bool equal = false;
+                        for(int iii = 0; iii < cornerPoints.size(); iii++) {
+                            // don't add the intersection when we alredy have it
+                            if(intersections[ii] == cornerPoints[iii]) {
+                                equal = true;
+                            }
                         }
-                    }
-                    if(!equal) {
-                        cornerPoints.push_back(intersections[ii]);
-                    }
+                        if(!equal) {
+                            cornerPoints.push_back(intersections[ii]);
+                        }
                 }
             }
             
