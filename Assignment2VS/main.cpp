@@ -86,7 +86,7 @@ int main(int argc, const char * argv[]) {
                 #if DEBUG
                 //cout << "POINTS: " << startPoint << "|" << nbees[0] << "|" << nbees[1] << endl;
                 //cout << "ANGLEs: " << angles[0] << " | " << angles[1] << " | " << angles[2] << " | " << endl;
-                putText(photos[i], to_string(ii), cvPoint(center[ii].x, center[ii].y+13), FONT_HERSHEY_DUPLEX, 0.3, Scalar(0,0,255), 1, CV_AA);
+                //putText(photos[i], to_string(ii), cvPoint(center[ii].x, center[ii].y+13), FONT_HERSHEY_DUPLEX, 0.3, Scalar(0,0,255), 1, CV_AA);
                 #endif
                 
                 int pointProp = identifyPoint(angles);
@@ -236,9 +236,14 @@ int main(int argc, const char * argv[]) {
                 
                 result[i] = highestMatch[0]+1;
             }
+            else {
+                //if it didn't find 4 corners
+                result[i] = -1;
+            }
         }
     }
     
+    #if DEBUG
     for(int i = 0; i < constant::numberOfPhotos; i++) {
         if(checkMatch(i, result[i])) {
             cout << to_string(i) << " is correct" << endl;
@@ -247,6 +252,9 @@ int main(int argc, const char * argv[]) {
             cout << to_string(i) << " is wrong 🚫" << endl;
         }
     }
+
+    printStatistics(result);
+    #endif
     
     cout << "press any key to end the programm" << endl;
     waitKey(0);

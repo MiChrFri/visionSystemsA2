@@ -15,5 +15,6 @@
 void logVersionNumber();
 void logSides(std::vector<std::vector<int>> sides);
 bool checkMatch(int photoIndex, int pageIndex);
+void printStatistics(int* resultValues);
 
 #endif /* Debug_hpp */
