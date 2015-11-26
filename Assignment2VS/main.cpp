@@ -84,9 +84,9 @@ int main(int argc, const char * argv[]) {
                 double *angles = getAngles(center[startPoint], center[nbees[0]], center[nbees[1]]);
                 
                 #if DEBUG
-                //cout << "POINTS: " << startPoint << "|" << nbees[0] << "|" << nbees[1] << endl;
-                //cout << "ANGLEs: " << angles[0] << " | " << angles[1] << " | " << angles[2] << " | " << endl;
-                //putText(photos[i], to_string(ii), cvPoint(center[ii].x, center[ii].y+13), FONT_HERSHEY_DUPLEX, 0.3, Scalar(0,0,255), 1, CV_AA);
+                cout << "POINTS: " << startPoint << "|" << nbees[0] << "|" << nbees[1] << endl;
+                cout << "ANGLEs: " << angles[0] << " | " << angles[1] << " | " << angles[2] << " | " << endl;
+                putText(photos[i], to_string(ii), cvPoint(center[ii].x, center[ii].y+13), FONT_HERSHEY_DUPLEX, 0.3, Scalar(0,0,255), 1, CV_AA);
                 #endif
                 
                 int pointProp = identifyPoint(angles);
@@ -153,12 +153,6 @@ int main(int argc, const char * argv[]) {
                     
                     blindLines.push_back({d1, d2});
                 }
-                
-                #if DEBUG
-                for(int ii = 0; ii < blindLines.size(); ii++) {
-                    line(rgbImg, blindLines[ii][0], blindLines[ii][1], Scalar(0,0,200), 1, 20, 0 );
-                }
-                #endif
                 
                 // find intersection in out lines
                 vector<Point2f> intersections = findIntersectionPoints(blindLines);
